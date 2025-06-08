@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { LatestPost } from '~/app/_components/post'
+import { LatestPost } from '~/components/post'
 import { auth } from '~/server/auth'
 import { HydrateClient, api } from '~/trpc/server'
 
