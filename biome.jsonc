@@ -1,26 +1,116 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-	"vcs": {
-		"enabled": true,
-		"clientKind": "git",
-		"useIgnoreFile": true
-	},
-	"files": { "ignoreUnknown": false, "ignore": [] },
-	"formatter": { "enabled": true },
-	"organizeImports": { "enabled": true },
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"nursery": {
-				"useSortedClasses": {
-					"level": "warn",
-					"fix": "safe",
-					"options": {
-						"functions": ["clsx", "cva", "cn"]
-					}
-				}
-			},
-			"recommended": true
-		}
-	}
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "ignore": [
+      "node_modules/**",
+      "**/.next",
+      "**/dist",
+      "**/out",
+      "public/**/*.js",
+      "tsconfig*.json",
+      "**/routeTree.gen.ts",
+      "coverage/**"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "attributePosition": "auto",
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120
+  },
+  "organizeImports": { "enabled": true },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "attributePosition": "auto",
+      "bracketSameLine": false,
+      "bracketSpacing": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "jsxQuoteStyle": "single",
+      "lineEnding": "lf",
+      "lineWidth": 120,
+      "quoteProperties": "asNeeded",
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "es5"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "recommended": true,
+        "useAriaPropsForRole": {
+          "level": "warn"
+        },
+        "useKeyWithClickEvents": {
+          "level": "warn"
+        },
+        "useKeyWithMouseEvents": {
+          "level": "warn"
+        },
+        "noNoninteractiveTabindex": {
+          "level": "off"
+        }
+      },
+      "complexity": {
+        "recommended": true
+      },
+      "correctness": {
+        "recommended": true,
+        "useExhaustiveDependencies": {
+          "level": "off",
+          "options": {
+            "hooks": [
+              {
+                "name": "null",
+                "stableResult": true
+              }
+            ]
+          }
+        }
+      },
+      "nursery": {
+        "useSortedClasses": {
+          "fix": "safe",
+          "level": "warn",
+          "options": {
+            "attributes": ["classList"],
+            "functions": ["clsx", "cva", "tw", "cn"]
+          }
+        }
+      },
+      "performance": {
+        "recommended": true
+      },
+      "security": {
+        "recommended": true,
+        "noDangerouslySetInnerHtml": {
+          "level": "off"
+        }
+      },
+      "style": {
+        "recommended": true,
+        "noNonNullAssertion": {
+          "level": "off"
+        }
+      },
+      "suspicious": {
+        "recommended": true,
+        "noExplicitAny": {
+          "level": "off"
+        }
+      }
+    }
+  }
 }
