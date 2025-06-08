@@ -11,7 +11,7 @@ import { TRPCError, initTRPC } from '@trpc/server'
 import superjson from 'superjson'
 import { ZodError } from 'zod'
 
-import { auth } from '~/server/auth'
+import { auth } from '@clerk/nextjs/server'
 import { db } from '~/server/db'
 
 /**
@@ -27,11 +27,9 @@ import { db } from '~/server/db'
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth()
-
   return {
     db,
-    session,
+    auth: await auth(),
     ...opts,
   }
 }
@@ -40,7 +38,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
  * 2. INITIALIZATION
  *
  * This is where the tRPC API is initialized, connecting the context and transformer. We also parse
- * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
+ * ZodErrors so that you get type safety on the frontend if your procedure fails due to validation
  * errors on the backend.
  */
 const t = initTRPC.context<typeof createTRPCContext>().create({
@@ -113,18 +111,17 @@ export const publicProcedure = t.procedure.use(timingMiddleware)
  * Protected (authenticated) procedure
  *
  * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
+ * the session is valid and the user is logged in, throwing an error if not.
  *
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure = t.procedure.use(timingMiddleware).use(({ ctx, next }) => {
-  if (!ctx.session?.user) {
+  if (!ctx.auth?.userId) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
   return next({
     ctx: {
-      // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user },
+      auth: ctx.auth,
     },
   })
 })

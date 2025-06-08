@@ -1,0 +1,375 @@
+'use client'
+
+import { AnimatePresence, motion } from 'motion/react'
+import { useTheme } from 'next-themes'
+import Link from 'next/link'
+import { useEffect, useTransition } from 'react'
+
+import {
+  Bot,
+  Brain,
+  ChevronDown,
+  Loader2,
+  LogOut,
+  MessageCircle,
+  Moon,
+  PanelLeft,
+  Pencil,
+  Settings,
+  Sun,
+  User,
+} from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import { Button } from '~/components/ui/button'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '~/components/ui/context-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+
+import { useSidebarStore } from '~/stores/useSidebarStore'
+
+import { formatMessageDateForChatList } from '~/lib/format-date-for-chat-list'
+
+type SidebarProps = {
+  selectedChatId?: string | null
+}
+
+/**
+ * Sidebar component that displays the chat list and user information.
+ */
+export const Sidebar = ({ selectedChatId }: SidebarProps) => {
+  const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
+  //const { userState, connectedPhone, logout } = useAuthStore()
+  //const { currentChat, setCurrentChat, chatList, setChatList } = useChatStore()
+  const chatList = {
+    // Example chat list structure
+    'chat-1': {
+      id: 'chat-1',
+      name: 'Chat 1',
+      timestamp: new Date().toISOString(),
+    },
+    'chat-2': {
+      id: 'chat-2',
+      name: 'Chat 2',
+      timestamp: new Date().toISOString(),
+    },
+  }
+
+  const [isPending, startTransition] = useTransition()
+
+  const { theme, setTheme } = useTheme()
+  // Opens and closes the sidebar with CTRL+B or CMD+B
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().includes('MAC')
+      const isCtrlB = (isMac ? e.metaKey : e.ctrlKey) && e.key === 'b'
+
+      if (isCtrlB) {
+        e.preventDefault()
+        setIsOpen(!isOpen)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, setIsOpen])
+  const handleLogout = () => {
+    // setCurrentChat(null)
+    //logout()
+    // router.navigate({ to: '/login' })
+  }
+  const sidebarVariants = {
+    open: { width: '24rem' }, // 4rem (buttons) + 20rem (content)
+    closed: { width: '4rem' },
+  }
+
+  const contentVariants = {
+    open: { opacity: 1, pointerEvents: 'auto', transition: { delay: 0.1, duration: 0.2 } },
+    closed: { opacity: 0, pointerEvents: 'none', transition: { duration: 0.1 } },
+  } as const
+
+  const tabContentVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  }
+
+  const tabTransition = {
+    type: 'tween',
+    duration: 0.15,
+  }
+
+  return (
+    <motion.div
+      initial={false} // Avoids initial animation on load
+      animate={isOpen ? 'open' : 'closed'}
+      variants={sidebarVariants}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className='flex h-full shrink-0 select-none flex-row bg-background text-background-foreground'
+    >
+      {/* Left button panel (always visible) */}
+      <div className='flex w-16 shrink-0 flex-col items-center justify-between border-r bg-background p-2 py-4'>
+        <div className='flex flex-col items-center space-y-2'>
+          <Button
+            variant='ghost'
+            size='icon'
+            aria-label='Open/Close sidebar'
+            className='dark:text-accent-foreground'
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <PanelLeft className={`size-5 transition-transform duration-300 ${isOpen ? '' : 'rotate-180'}`} />
+          </Button>
+
+          <Button
+            variant={selectedTab === 'chat' ? 'secondary' : 'ghost'}
+            size='icon'
+            aria-label='Chat'
+            className='dark:text-accent-foreground'
+            onClick={() => setSelectedTab('chat')}
+          >
+            <MessageCircle className='size-5' />
+          </Button>
+
+          <Button
+            variant={selectedTab === 'settings' ? 'secondary' : 'ghost'}
+            size='icon'
+            aria-label='Settings'
+            className='dark:text-accent-foreground'
+            onClick={() => setSelectedTab('settings')}
+          >
+            <Settings className='size-5' />
+          </Button>
+        </div>
+
+        {/* Theme switcher */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant='ghost' size='icon' aria-label='Change theme' className='dark:text-accent-foreground'>
+              <Sun className='dark:-rotate-90 size-5 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0' />
+
+              <Moon className='absolute size-5 h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
+
+              <span className='sr-only'>Change theme</span>
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align='end' side='right'>
+            <DropdownMenuItem
+              data-selected={theme === 'system'}
+              className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+              onClick={() => setTheme('system')}
+            >
+              System
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              data-selected={theme === 'dark'}
+              className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+              onClick={() => setTheme('dark')}
+            >
+              Dark
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              data-selected={theme === 'light'}
+              className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+              onClick={() => setTheme('light')}
+            >
+              Light
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Sidebar open based on isOpen state */}
+      <motion.div
+        variants={contentVariants}
+        animate={isOpen ? 'open' : 'closed'}
+        initial='open'
+        className='flex w-full flex-col p-4 px-6'
+      >
+        <div className='mt-2 mb-4 flex w-full items-center justify-center'>
+          <img src='/icons/logo-no-bg.png' alt='Twenty Two AI' className='size-12' />
+        </div>
+
+        <AnimatePresence mode='wait'>
+          {selectedTab === 'chat' && (
+            <motion.div
+              key='chat'
+              variants={tabContentVariants}
+              initial='initial'
+              animate='animate'
+              exit='exit'
+              transition={tabTransition}
+              className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
+            >
+              {chatList.isError ? (
+                <div className='flex size-full items-center justify-center'>
+                  <div className='text-center text-destructive text-sm'>{chatList.error}</div>
+                </div>
+              ) : chatList.isLoading ? (
+                <div className='flex size-full items-center justify-center'>
+                  <Loader2 className='size-4 animate-spin' />
+                </div>
+              ) : chatList.data && !!chatList.data.length ? (
+                (() => {
+                  const filteredChats = chatList.data.filter((chat) => {
+                    // If no tags are selected, show all chats
+                    if (!selectedTagFilters.length) return true
+                    // Filter by selected tags - the chat must match any of the selected tags
+                    return selectedTagFilters.includes(chat.tags)
+                  })
+
+                  if (!filteredChats.length) {
+                    return (
+                      <div className='flex size-full items-center justify-center'>
+                        <div className='text-center text-muted-foreground text-sm'>
+                          {selectedTagFilters.length ? 'No chat found for the selected tags.' : 'No chat available.'}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return filteredChats
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                    .map((chat) => (
+                      <ContextMenu key={chat.id}>
+                        <ContextMenuTrigger asChild>
+                          <Link
+                            href={`/chat/${chat.id}`}
+                            data-selected={chat.id === selectedChatId}
+                            className='group flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
+                          >
+                            <Avatar className='size-10'>
+                              <AvatarImage src={chat.profilePicture} alt={chat.name} />
+
+                              <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+
+                            <div className='flex w-full flex-col'>
+                              <div className='flex w-full items-center justify-between'>
+                                <span className='max-w-32 truncate font-medium'>{chat.name}</span>
+
+                                <span className='shrink-0 text-muted-foreground text-xs'>
+                                  <span>{formatMessageDateForChatList(chat.timestamp)}</span>
+                                </span>
+                              </div>
+
+                              <div className='flex w-full items-center justify-between'>
+                                <span className='max-w-[10.5rem] truncate text-muted-foreground text-sm'>
+                                  {chat.message}
+                                </span>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 group-data-[state=open]:rotate-180' />
+                                  </DropdownMenuTrigger>
+
+                                  <DropdownMenuContent className='select-none'>
+                                    <DropdownMenuLabel>Options</DropdownMenuLabel>
+
+                                    <DropdownMenuSeparator />
+
+                                    <DropdownMenuItem>
+                                      <Brain /> <span>Robot memory</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem>
+                                      <Pencil /> <span>Customize your bot</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem onClick={() => setSelectedTab('settings')}>
+                                      <Settings /> <span>Settings</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          </Link>
+                        </ContextMenuTrigger>
+
+                        <ContextMenuContent className='select-none'>
+                          <ContextMenuLabel>Options</ContextMenuLabel>
+
+                          <ContextMenuSeparator />
+
+                          <ContextMenuItem>
+                            <Brain /> <span>Robot memory</span>
+                          </ContextMenuItem>
+
+                          <ContextMenuItem>
+                            <Pencil /> <span>Customize your bot</span>
+                          </ContextMenuItem>
+
+                          <ContextMenuItem onClick={() => setSelectedTab('settings')}>
+                            <Settings /> <span>Settings</span>
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    ))
+                })()
+              ) : (
+                <div className='flex size-full items-center justify-center'>
+                  <div className='text-center text-muted-foreground text-sm'>No chat available.</div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {selectedTab === 'settings' && (
+            <motion.div
+              key='settings'
+              variants={tabContentVariants}
+              initial='initial'
+              animate='animate'
+              exit='exit'
+              transition={tabTransition}
+              className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
+            >
+              <div className='w-full text-center text-muted-foreground text-sm'>
+                <div>Settings</div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Dropdown */}
+        <div className='flex justify-center pt-4'>
+          <DropdownMenu>
+            <DropdownMenuTrigger className='group flex cursor-pointer items-center space-x-2 rounded-lg px-5 py-3 transition-all ease-in hover:bg-accent dark:hover:bg-accent/35'>
+              <User className='size-4' />
+
+              {/* <div className='max-w-40 truncate text-sm'>{userState?.user.email}</div> */}
+
+              <ChevronDown className='mt-1 size-4 transition-all ease-in group-data-[state=open]:rotate-180' />
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent side='top'>
+              <DropdownMenuLabel>My account</DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className='mr-2 size-4' />
+
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
