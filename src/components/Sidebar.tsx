@@ -41,6 +41,7 @@ import {
 
 import { useSidebarStore } from '~/stores/useSidebarStore'
 
+import { clerkThemes } from '~/lib/clerk-themes'
 import { formatMessageDateForChatList } from '~/lib/format-date-for-chat-list'
 
 type SidebarProps = {
@@ -415,43 +416,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
           </DialogHeader>
 
           <div className='flex w-full items-center justify-center overflow-hidden'>
-            <UserProfile
-              routing='hash'
-              appearance={{
-                baseTheme: (resolvedTheme === 'dark' ? 'dark' : 'light') as any,
-                variables: {
-                  colorPrimary: resolvedTheme === 'dark' ? '#8b5cf6' : '#7c3aed',
-                  colorBackground: resolvedTheme === 'dark' ? '#27272a' : '#ffffff',
-                  colorText: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
-                  colorTextSecondary: resolvedTheme === 'dark' ? '#9ca3af' : '#6b7280',
-                  colorNeutral: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
-                  colorInputBackground: resolvedTheme === 'dark' ? '#27272a' : '#f9fafb',
-                  colorInputText: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
-                  colorDanger: '#ef4444',
-                  borderRadius: '0.65rem',
-                },
-                elements: {
-                  card: {
-                    backgroundColor: resolvedTheme === 'dark' ? '#27272a' : '#ffffff',
-                    borderColor: resolvedTheme === 'dark' ? '#27272a' : '#e5e7eb',
-                    color: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
-                  },
-                  modalBackdrop: {
-                    backgroundColor: 'rgba(0, 0, 0, 0)',
-                  },
-                  rootBox: {
-                    backgroundColor: resolvedTheme === 'dark' ? '#27272a' : '#ffffff',
-                  },
-                  formButtonPrimary: {
-                    backgroundColor: resolvedTheme === 'dark' ? '#8b5cf6' : '#7c3aed',
-                    color: '#ffffff',
-                    '&:hover': {
-                      opacity: '0.9',
-                    },
-                  },
-                },
-              }}
-            />
+            <UserProfile routing='hash' appearance={clerkThemes(resolvedTheme ?? 'dark')} />
           </div>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,4 @@
-import { ClerkProvider, SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { ClerkProvider } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
@@ -23,7 +23,7 @@ const geist = Geist({
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang='en' className={`${geist.variable}`}>
+      <html lang='en' className={`${geist.variable}`} suppressHydrationWarning>
         <body>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
             <main className='min-h-screen bg-[url("/images/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/dark-background.svg")]'>
