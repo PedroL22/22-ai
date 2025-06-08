@@ -1,15 +1,16 @@
 'use client'
 
+import { UserProfile, useClerk, useUser } from '@clerk/nextjs'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
-import { useEffect, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 
 import {
-  Bot,
   Brain,
   ChevronDown,
   Loader2,
+  LogIn,
   LogOut,
   MessageCircle,
   Moon,
@@ -17,7 +18,6 @@ import {
   Pencil,
   Settings,
   Sun,
-  User,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
@@ -29,6 +29,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '~/components/ui/context-menu'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,7 +52,8 @@ type SidebarProps = {
  */
 export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
-  //const { userState, connectedPhone, logout } = useAuthStore()
+  const { isSignedIn, isLoaded, user } = useUser()
+  const { signOut } = useClerk()
   //const { currentChat, setCurrentChat, chatList, setChatList } = useChatStore()
   const chatList = {
     // Example chat list structure
@@ -67,9 +69,11 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     },
   }
 
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
+
   // Opens and closes the sidebar with CTRL+B or CMD+B
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -85,10 +89,11 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
-  const handleLogout = () => {
-    // setCurrentChat(null)
-    //logout()
-    // router.navigate({ to: '/login' })
+
+  const handleLogout = async () => {
+    await signOut()
+
+    location.reload()
   }
   const sidebarVariants = {
     open: { width: '24rem' }, // 4rem (buttons) + 20rem (content)
@@ -345,31 +350,111 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
           )}
         </AnimatePresence>
 
-        {/* Dropdown */}
-        <div className='flex justify-center pt-4'>
-          <DropdownMenu>
-            <DropdownMenuTrigger className='group flex cursor-pointer items-center space-x-2 rounded-lg px-5 py-3 transition-all ease-in hover:bg-accent dark:hover:bg-accent/35'>
-              <User className='size-4' />
+        {/* User stuff */}
+        {!isLoaded ? (
+          <div className='flex justify-center pt-11 pb-3'>
+            <Loader2 className='size-4 animate-spin' />
+          </div>
+        ) : isSignedIn ? (
+          <div className='flex justify-center pt-4'>
+            <DropdownMenu>
+              <DropdownMenuTrigger className='group flex cursor-pointer items-center space-x-2 rounded-lg px-5 py-3 transition-all ease-in hover:bg-accent dark:hover:bg-accent/35'>
+                <div className='flex items-center space-x-3'>
+                  <Avatar className='size-8'>
+                    <AvatarImage src={user?.imageUrl || undefined} alt={user?.fullName || undefined} />
 
-              {/* <div className='max-w-40 truncate text-sm'>{userState?.user.email}</div> */}
+                    <AvatarFallback>{user?.fullName?.charAt(0)}</AvatarFallback>
+                  </Avatar>
 
-              <ChevronDown className='mt-1 size-4 transition-all ease-in group-data-[state=open]:rotate-180' />
-            </DropdownMenuTrigger>
+                  <div className='max-w-40 truncate font-medium'>{user?.fullName}</div>
+                </div>
 
-            <DropdownMenuContent side='top'>
-              <DropdownMenuLabel>My account</DropdownMenuLabel>
+                <ChevronDown className='mt-1 size-4 transition-all ease-in group-data-[state=open]:rotate-180' />
+              </DropdownMenuTrigger>
 
-              <DropdownMenuSeparator />
+              <DropdownMenuContent side='top'>
+                <DropdownMenuLabel>My account</DropdownMenuLabel>
 
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className='mr-2 size-4' />
+                <DropdownMenuSeparator />
 
-                <span>Sign out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                <DropdownMenuItem onClick={() => setIsSettingsDialogOpen(true)}>
+                  <Settings className='size-4' />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className='size-4' />
+
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          <div className='flex justify-center pt-4'>
+            <Link
+              href='/sign-in'
+              className='flex items-center space-x-2 rounded-lg p-3 transition-all ease-in hover:bg-accent dark:hover:bg-accent/35'
+            >
+              <LogIn className='size-6' />
+
+              <span className='font-medium'>Sign in</span>
+            </Link>
+          </div>
+        )}
       </motion.div>
+
+      {/* Settings Dialog */}
+      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+        <DialogContent className='overflow-auto rounded-2xl border-none p-0 sm:max-w-[880px]'>
+          <DialogHeader className='sr-only'>
+            <DialogTitle />
+            <DialogDescription />
+          </DialogHeader>
+
+          <div className='flex w-full items-center justify-center overflow-hidden'>
+            <UserProfile
+              routing='hash'
+              appearance={{
+                baseTheme: (resolvedTheme === 'dark' ? 'dark' : 'light') as any,
+                variables: {
+                  colorPrimary: resolvedTheme === 'dark' ? '#8b5cf6' : '#7c3aed',
+                  colorBackground: resolvedTheme === 'dark' ? '#27272a' : '#ffffff',
+                  colorText: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
+                  colorTextSecondary: resolvedTheme === 'dark' ? '#9ca3af' : '#6b7280',
+                  colorNeutral: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
+                  colorInputBackground: resolvedTheme === 'dark' ? '#27272a' : '#f9fafb',
+                  colorInputText: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
+                  colorDanger: '#ef4444',
+                  borderRadius: '0.65rem',
+                },
+                elements: {
+                  card: {
+                    backgroundColor: resolvedTheme === 'dark' ? '#27272a' : '#ffffff',
+                    borderColor: resolvedTheme === 'dark' ? '#27272a' : '#e5e7eb',
+                    color: resolvedTheme === 'dark' ? '#ffffff' : '#0f0f23',
+                  },
+                  modalBackdrop: {
+                    backgroundColor: 'rgba(0, 0, 0, 0)',
+                  },
+                  rootBox: {
+                    backgroundColor: resolvedTheme === 'dark' ? '#27272a' : '#ffffff',
+                  },
+                  formButtonPrimary: {
+                    backgroundColor: resolvedTheme === 'dark' ? '#8b5cf6' : '#7c3aed',
+                    color: '#ffffff',
+                    '&:hover': {
+                      opacity: '0.9',
+                    },
+                  },
+                },
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   )
 }
