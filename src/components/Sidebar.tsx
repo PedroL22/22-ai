@@ -18,6 +18,7 @@ import {
   Pencil,
   Settings,
   Sun,
+  User,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
@@ -379,8 +380,8 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem onClick={() => setIsSettingsDialogOpen(true)}>
-                  <Settings className='size-4' />
-                  <span>Settings</span>
+                  <User className='size-4' />
+                  <span>Manage account</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
