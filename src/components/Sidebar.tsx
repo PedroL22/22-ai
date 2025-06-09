@@ -198,7 +198,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
             {/* Sidebar content */}
             <div className='flex w-full min-w-80 flex-col p-4 px-6'>
               <div className='mt-2 mb-4 flex w-full items-center justify-center'>
-                <img src='/icons/logo-no-bg.png' alt='Twenty Two AI' className='size-12' />
+                <img src='/icons/logo-no-bg.png' alt='22 AI' className='size-12' />
               </div>
 
               <AnimatePresence mode='wait'>
