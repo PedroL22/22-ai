@@ -23,11 +23,11 @@ const messageVariants = cva('flex flex-col gap-1 rounded-2xl px-4 py-3 text-sm',
   },
 })
 
-type MessageProps = {
-  message: MessageType
-}
+// type MessageProps = {
+//   message: MessageType
+// }
 
-export const Message = ({ message }: MessageProps) => {
+export const Message = ({ message }: any) => {
   const iconToShow = () => {
     if (message.role === 'client') return <User className='size-4' />
     if (message.role === 'bot') return <Bot className='size-4' />

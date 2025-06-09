@@ -57,18 +57,32 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
   //const { currentChat, setCurrentChat, chatList, setChatList } = useChatStore()
-  const chatList = {
+  const chatList: {
+    data: { [key: string]: { id: string; name: string; timestamp: string; message: string; profilePicture: string } }
+    isLoading: boolean
+    isError: boolean
+    error: null
+  } = {
     // Example chat list structure
-    'chat-1': {
-      id: 'chat-1',
-      name: 'Chat 1',
-      timestamp: new Date().toISOString(),
+    data: {
+      'chat-1': {
+        id: 'chat-1',
+        name: 'Chat 1',
+        timestamp: new Date().toISOString(),
+        message: 'Hello, how can I help you today?',
+        profilePicture: 'https://example.com/profile1.jpg',
+      },
+      'chat-2': {
+        id: 'chat-2',
+        name: 'Chat 2',
+        timestamp: new Date().toISOString(),
+        message: 'Hello, how can I help you today?',
+        profilePicture: 'https://example.com/profile2.jpg',
+      },
     },
-    'chat-2': {
-      id: 'chat-2',
-      name: 'Chat 2',
-      timestamp: new Date().toISOString(),
-    },
+    isError: false,
+    isLoading: false,
+    error: null,
   }
 
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
@@ -213,86 +227,84 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                       <div className='flex size-full items-center justify-center'>
                         <Loader2 className='size-4 animate-spin' />
                       </div>
-                    ) : chatList.data && !!chatList.data.length ? (
-                      (() => {
-                        return filteredChats
-                          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                          .map((chat) => (
-                            <ContextMenu key={chat.id}>
-                              <ContextMenuTrigger asChild>
-                                <Link
-                                  href={`/chat/${chat.id}`}
-                                  data-selected={chat.id === selectedChatId}
-                                  className='group flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
-                                >
-                                  <Avatar className='size-10'>
-                                    <AvatarImage src={chat.profilePicture} alt={chat.name} />
+                    ) : chatList.data && Object.values(chatList.data).length ? (
+                      Object.values(chatList.data)
+                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                        .map((chat) => (
+                          <ContextMenu key={chat.id}>
+                            <ContextMenuTrigger asChild>
+                              <Link
+                                href={`/chat/${chat.id}`}
+                                data-selected={chat.id === selectedChatId}
+                                className='group flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
+                              >
+                                <Avatar className='size-10'>
+                                  <AvatarImage src={chat.profilePicture} alt={chat.name} />
 
-                                    <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
-                                  </Avatar>
+                                  <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
 
-                                  <div className='flex w-full flex-col'>
-                                    <div className='flex w-full items-center justify-between'>
-                                      <span className='max-w-32 truncate font-medium'>{chat.name}</span>
+                                <div className='flex w-full flex-col'>
+                                  <div className='flex w-full items-center justify-between'>
+                                    <span className='max-w-32 truncate font-medium'>{chat.name}</span>
 
-                                      <span className='shrink-0 text-muted-foreground text-xs'>
-                                        <span>{formatMessageDateForChatList(chat.timestamp)}</span>
-                                      </span>
-                                    </div>
-
-                                    <div className='flex w-full items-center justify-between'>
-                                      <span className='max-w-[10.5rem] truncate text-muted-foreground text-sm'>
-                                        {chat.message}
-                                      </span>
-
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 group-data-[state=open]:rotate-180' />
-                                        </DropdownMenuTrigger>
-
-                                        <DropdownMenuContent className='select-none'>
-                                          <DropdownMenuLabel>Options</DropdownMenuLabel>
-
-                                          <DropdownMenuSeparator />
-
-                                          <DropdownMenuItem>
-                                            <Brain /> <span>Robot memory</span>
-                                          </DropdownMenuItem>
-
-                                          <DropdownMenuItem>
-                                            <Pencil /> <span>Customize your bot</span>
-                                          </DropdownMenuItem>
-
-                                          <DropdownMenuItem onClick={() => setSelectedTab('settings')}>
-                                            <Settings /> <span>Settings</span>
-                                          </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </div>
+                                    <span className='shrink-0 text-muted-foreground text-xs'>
+                                      <span>{formatMessageDateForChatList(chat.timestamp)}</span>
+                                    </span>
                                   </div>
-                                </Link>
-                              </ContextMenuTrigger>
 
-                              <ContextMenuContent className='select-none'>
-                                <ContextMenuLabel>Options</ContextMenuLabel>
+                                  <div className='flex w-full items-center justify-between'>
+                                    <span className='max-w-[10.5rem] truncate text-muted-foreground text-sm'>
+                                      {chat.message}
+                                    </span>
 
-                                <ContextMenuSeparator />
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 group-data-[state=open]:rotate-180' />
+                                      </DropdownMenuTrigger>
 
-                                <ContextMenuItem>
-                                  <Brain /> <span>Robot memory</span>
-                                </ContextMenuItem>
+                                      <DropdownMenuContent className='select-none'>
+                                        <DropdownMenuLabel>Options</DropdownMenuLabel>
 
-                                <ContextMenuItem>
-                                  <Pencil /> <span>Customize your bot</span>
-                                </ContextMenuItem>
+                                        <DropdownMenuSeparator />
 
-                                <ContextMenuItem onClick={() => setSelectedTab('settings')}>
-                                  <Settings /> <span>Settings</span>
-                                </ContextMenuItem>
-                              </ContextMenuContent>
-                            </ContextMenu>
-                          ))
-                      })()
+                                        <DropdownMenuItem>
+                                          <Brain /> <span>Robot memory</span>
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuItem>
+                                          <Pencil /> <span>Customize your bot</span>
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuItem onClick={() => setSelectedTab('settings')}>
+                                          <Settings /> <span>Settings</span>
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </div>
+                              </Link>
+                            </ContextMenuTrigger>
+
+                            <ContextMenuContent className='select-none'>
+                              <ContextMenuLabel>Options</ContextMenuLabel>
+
+                              <ContextMenuSeparator />
+
+                              <ContextMenuItem>
+                                <Brain /> <span>Robot memory</span>
+                              </ContextMenuItem>
+
+                              <ContextMenuItem>
+                                <Pencil /> <span>Customize your bot</span>
+                              </ContextMenuItem>
+
+                              <ContextMenuItem onClick={() => setSelectedTab('settings')}>
+                                <Settings /> <span>Settings</span>
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
+                        ))
                     ) : (
                       <div className='flex size-full items-center justify-center'>
                         <div className='text-center text-muted-foreground text-sm'>No chat available.</div>
