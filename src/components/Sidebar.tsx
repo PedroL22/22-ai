@@ -84,14 +84,8 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   }
 
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
 
   const { theme, setTheme, resolvedTheme } = useTheme()
-
-  // Set isMounted to true after component mounts to prevent initial animation
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   // Opens and closes the sidebar with CTRL+B or CMD+B
   useEffect(() => {
