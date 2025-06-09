@@ -25,7 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <ClerkProvider>
       <html lang='en' className={`${geist.variable}`} suppressHydrationWarning>
         <body>
-          <ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
             <main className='min-h-screen bg-[url("/images/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/dark-background.svg")]'>
               <TRPCReactProvider>{children}</TRPCReactProvider>
             </main>
