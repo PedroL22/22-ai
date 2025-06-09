@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "agentic",
+    "cloneathon",
     "deepseek",
     "devstral",
     "geist",
@@ -10,5 +11,6 @@
     "OPENROUTER",
     "tngtech",
     "TTFT"
-  ]
+  ],
+  "typescript.tsdk": "node_modules\\typescript\\lib"
 }
