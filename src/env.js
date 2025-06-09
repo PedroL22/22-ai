@@ -5,11 +5,14 @@ export const env = createEnv({
   /**
    * Specify your server-side environment variables schema here. This way you can ensure the app
    * isn't built with invalid env vars.
-   */
-  server: {
+   */ server: {
     DATABASE_URL: z.string().url().optional(),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     CLERK_SECRET_KEY: z.string(),
+    OPENROUTER_API_KEY: z.string(),
+    OPENROUTER_DEFAULT_MODEL: z.string(),
+    OPENROUTER_SITE_URL: z.string().url().optional(),
+    OPENROUTER_SITE_NAME: z.string().optional(),
   },
 
   /**
@@ -27,8 +30,7 @@ export const env = createEnv({
   /**
    * You can't destruct `process.env` as a regular object in the Next.js edge runtimes (e.g.
    * middlewares) or client-side so we need to destruct manually.
-   */
-  runtimeEnv: {
+   */ runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
@@ -36,6 +38,10 @@ export const env = createEnv({
     NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    OPENROUTER_DEFAULT_MODEL: process.env.OPENROUTER_DEFAULT_MODEL,
+    OPENROUTER_SITE_URL: process.env.OPENROUTER_SITE_URL,
+    OPENROUTER_SITE_NAME: process.env.OPENROUTER_SITE_NAME,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
