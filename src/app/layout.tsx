@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+import { Analytics } from '@vercel/analytics/next'
 
 import { Geist } from 'next/font/google'
 import '~/styles/globals.css'
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <body>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
             <main className='min-h-screen bg-[url("/images/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/dark-background.svg")]'>
-              <TRPCReactProvider>{children}</TRPCReactProvider>
+              <TRPCReactProvider>
+                <Analytics />
+                {children}
+              </TRPCReactProvider>
             </main>
           </ThemeProvider>
         </body>
