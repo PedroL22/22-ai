@@ -27,7 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <html lang='en' className={`${geist.variable}`} suppressHydrationWarning>
         <body>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-            <main className='min-h-screen bg-[url("/images/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/dark-background.svg")]'>
+            <main className='min-h-svh bg-[url("/images/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/dark-background.svg")]'>
               <TRPCReactProvider>
                 <Analytics />
                 {children}

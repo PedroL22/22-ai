@@ -16,7 +16,7 @@ export default function SignInPage() {
         <ThemeToggle />
       </div>
 
-      <div className='flex h-screen items-center justify-center '>
+      <div className='flex h-svh items-center justify-center '>
         <SignIn routing='hash' appearance={clerkThemes(resolvedTheme ?? 'dark')} />
       </div>
     </>
