@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { env } from '~/env'
 import { type ChatMessage, createChatCompletion, createStreamingChatCompletion } from '~/lib/openai'
-import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
+import { createTRPCRouter, publicProcedure } from '~/server/api/trpc'
 
 const chatMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),
@@ -10,7 +10,7 @@ const chatMessageSchema = z.object({
 })
 
 export const chatRouter = createTRPCRouter({
-  sendMessage: protectedProcedure
+  sendMessage: publicProcedure
     .input(
       z.object({
         messages: z.array(chatMessageSchema),
@@ -32,7 +32,7 @@ export const chatRouter = createTRPCRouter({
       }
     }),
 
-  streamMessage: protectedProcedure
+  streamMessage: publicProcedure
     .input(
       z.object({
         messages: z.array(chatMessageSchema),
@@ -63,7 +63,7 @@ export const chatRouter = createTRPCRouter({
       }
     }),
 
-  getModels: protectedProcedure.query(async () => {
+  getModels: publicProcedure.query(async () => {
     // Return a list of available models from OpenRouter
     return [
       {
