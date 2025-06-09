@@ -1,5 +1,3 @@
-'use client'
-
 import { useEffect, useRef, useState, useTransition } from 'react'
 
 import { ArrowUp } from 'lucide-react'
@@ -17,8 +15,6 @@ type ChatMessage = {
 
 export const ChatArea = () => {
   const [message, setMessage] = useState('')
-  const [isInitialScroll, setIsInitialScroll] = useState(true)
-  const [hasAutoScrolled, setHasAutoScrolled] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
 
   const [isPending, startTransition] = useTransition()
