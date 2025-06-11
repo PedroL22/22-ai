@@ -141,7 +141,7 @@
     --pwa-safe-area-top: env(safe-area-inset-top, 0px);
     --pwa-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   }
-  
+
   /* Ensure content doesn't overlap with notches on mobile */
   body {
     padding-top: var(--pwa-safe-area-top);

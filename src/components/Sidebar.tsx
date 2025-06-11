@@ -242,10 +242,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
             />
           </div>
 
-          <Button asChild className='mb-6'>
-            <Link href='/'>New chat</Link>
-          </Button>
-
           <AnimatePresence mode='wait'>
             {selectedTab === 'chat' && (
               <motion.div
@@ -262,8 +258,13 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                   type: 'tween',
                   duration: 0.15,
                 }}
-                className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
+                className='flex min-h-0 flex-1 flex-col space-y-4'
               >
+                <Button asChild>
+                  <Link href='/'>New chat</Link>
+                </Button>
+                
+                <div className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'>
                 {dbChatsError ? (
                   <div className='flex size-full items-center justify-center'>
                     <div className='text-center text-destructive text-sm'>
@@ -335,6 +336,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                     </div>
                   </div>
                 )}
+                </div>
               </motion.div>
             )}
 
@@ -357,11 +359,23 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
               >
                 <div className='w-full space-y-4'>
                   <div className='text-center font-medium text-muted-foreground text-sm'>Settings</div>
-                  <div className='space-y-3'>
-                    <div className='flex flex-col space-y-2'>
-                      <div className='font-medium text-sm'>Progressive Web App</div>
+
+                  <div className='space-y-4'>
+                    {/* PWA Section */}
+                    <div className='space-y-3'>
+                      <div className='flex items-center gap-2'>
+                        <div className='font-medium text-sm'>Progressive Web App</div>
+                        <div className='flex h-4 w-4 items-center justify-center rounded-full bg-primary/20'>
+                          <div className='h-2 w-2 rounded-full bg-primary' />
+                        </div>
+                      </div>
+                      <div className='text-muted-foreground text-xs leading-relaxed'>
+                        Install 22AI as a native app for a better experience with offline support and faster loading.
+                      </div>
                       <PWAInstallPrompt />
                     </div>
+
+                    {/* Future settings sections can be added here */}
                   </div>
                 </div>
               </motion.div>

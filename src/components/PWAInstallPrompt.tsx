@@ -1,6 +1,6 @@
 'use client'
 
-import { Download } from 'lucide-react'
+import { Check, Download, Info, Smartphone } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '~/components/ui/button'
 
@@ -22,6 +22,8 @@ declare global {
 export function PWAInstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [isInstalling, setIsInstalling] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
 
   useEffect(() => {
     // Check if app is already installed
@@ -41,6 +43,7 @@ export function PWAInstallPrompt() {
     const handleAppInstalled = () => {
       setIsInstalled(true)
       setInstallPrompt(null)
+      setIsInstalling(false)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -55,31 +58,83 @@ export function PWAInstallPrompt() {
   const handleInstallClick = async () => {
     if (!installPrompt) return
 
-    // Show the install prompt
-    await installPrompt.prompt()
+    setIsInstalling(true)
 
-    // Wait for the user to respond to the prompt
-    const { outcome } = await installPrompt.userChoice
+    try {
+      // Show the install prompt
+      await installPrompt.prompt()
 
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt')
-    } else {
-      console.log('User dismissed the install prompt')
+      // Wait for the user to respond to the prompt
+      const { outcome } = await installPrompt.userChoice
+
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt')
+      } else {
+        console.log('User dismissed the install prompt')
+        setIsInstalling(false)
+      }
+
+      // Clear the saved prompt since it can only be used once
+      setInstallPrompt(null)
+    } catch (error) {
+      console.error('Error installing PWA:', error)
+      setIsInstalling(false)
     }
-
-    // Clear the saved prompt since it can only be used once
-    setInstallPrompt(null)
   }
 
-  // Don't show the button if the app is already installed or if the prompt isn't available
-  if (isInstalled || !installPrompt) {
-    return null
+  // Show installed state
+  if (isInstalled) {
+    return (
+      <div className='flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950'>
+        <Check className='h-4 w-4 text-green-600 dark:text-green-400' />
+        <div className='flex-1'>
+          <div className='font-medium text-green-800 text-sm dark:text-green-200'>App Installed</div>
+          <div className='text-green-600 text-xs dark:text-green-400'>22AI is installed on your device</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show info when install prompt is not available
+  if (!installPrompt) {
+    return (
+      <div className='space-y-3'>
+        <div className='flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950'>
+          <Info className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+          <div className='flex-1'>
+            <div className='font-medium text-blue-800 text-sm dark:text-blue-200'>Install Available</div>
+            <div className='text-blue-600 text-xs dark:text-blue-400'>
+              Use your browser's install option or add to home screen
+            </div>
+          </div>
+        </div>
+        <Button variant='outline' size='sm' className='w-full gap-2' onClick={() => setShowInfo(!showInfo)}>
+          <Smartphone className='h-4 w-4' />
+          How to Install
+        </Button>
+        {showInfo && (
+          <div className='rounded-lg bg-muted p-3 text-muted-foreground text-xs'>
+            <div className='space-y-2'>
+              <div>
+                <strong>Chrome/Edge:</strong> Click the install icon in the address bar
+              </div>
+              <div>
+                <strong>Safari (iOS):</strong> Tap Share → Add to Home Screen
+              </div>
+              <div>
+                <strong>Firefox:</strong> Look for "Install" in the menu
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
-    <Button onClick={handleInstallClick} variant='outline' size='sm' className='gap-2'>
-      <Download className='h-4 w-4' />
-      Install App
+    <Button onClick={handleInstallClick} variant='default' size='sm' className='w-full gap-2' disabled={isInstalling}>
+      <Download className={`h-4 w-4 ${isInstalling ? 'animate-bounce' : ''}`} />
+      {isInstalling ? 'Installing...' : 'Install App'}
     </Button>
   )
 }
