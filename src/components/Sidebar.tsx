@@ -8,30 +8,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import {
-  ChevronDown,
-  Loader2,
-  LogIn,
-  LogOut,
-  MessageCircle,
-  Moon,
-  PanelLeft,
-  Settings,
-  Sun,
-  Trash,
-  User,
-} from 'lucide-react'
+import { ChevronDown, Loader2, LogIn, LogOut, MessageCircle, Moon, PanelLeft, Settings, Sun, User } from 'lucide-react'
 import { PWAInstallPrompt } from '~/components/PWAInstallPrompt'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuLabel,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from '~/components/ui/context-menu'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog'
 import {
   DropdownMenu,
@@ -47,6 +27,7 @@ import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
 import { formatMessageDateForChatList } from '~/lib/format-date-for-chat-list'
+import { isMobile } from '~/lib/is-mobile'
 
 import { api } from '~/trpc/react'
 
@@ -66,6 +47,8 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { signOut } = useClerk()
   const { localChats, databaseChats, setDatabaseChats, deleteLocalChat } = useChatStore()
 
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
+
   const {
     data: dbChats,
     isLoading: isLoadingDbChats,
@@ -75,6 +58,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     refetchOnWindowFocus: false,
   })
 
+  // Set the initial selected tab to 'chat' if not set
   useEffect(() => {
     if (dbChats) {
       setDatabaseChats(dbChats)
@@ -91,11 +75,10 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     return dateB - dateA
   })
 
-  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
-
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { push } = useRouter()
 
+  // Handle Ctrl+B
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().includes('MAC')
@@ -110,6 +93,14 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
+
+  // Always close sidebar on mobile when the component mounts
+  // This ensures the sidebar is closed when navigating to a new page on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsOpen(false)
+    }
+  }, [setIsOpen])
 
   const handleDeleteChat = (chatId: string) => {
     const isCurrentChat = selectedChatId === chatId
@@ -126,6 +117,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
     isCurrentChat && push('/')
   }
+
   const handleLogout = async () => {
     setDatabaseChats([])
 
@@ -137,7 +129,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   return (
     <aside className='relative'>
       {/* Floating toggle button */}
-      <div className='absolute top-4 left-[13.75px] z-50'>
+      <div className='absolute top-4 left-2.5 z-50'>
         <Button variant='ghost' size='icon' aria-label='Open sidebar' onClick={() => setIsOpen(!isOpen)}>
           <PanelLeft className='size-5' />
         </Button>
@@ -156,7 +148,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
       >
         {/* Left vertical button panel */}
         <div className='flex w-16 shrink-0 flex-col items-center justify-between bg-background p-2 py-4'>
-          <div className='flex flex-col items-center space-y-2 pt-11'>
+          <div className='flex flex-col items-center space-y-2 pt-13'>
             <Button
               variant={selectedTab === 'chat' ? 'secondary' : 'ghost'}
               size='icon'
@@ -263,79 +255,46 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 <Button asChild>
                   <Link href='/'>New chat</Link>
                 </Button>
-                
+
                 <div className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'>
-                {dbChatsError ? (
-                  <div className='flex size-full items-center justify-center'>
-                    <div className='text-center text-destructive text-sm'>
-                      {dbChatsError.message || 'Failed to load chats'}
+                  {dbChatsError ? (
+                    <div className='flex size-full items-center justify-center'>
+                      <div className='text-center text-destructive text-sm'>
+                        {dbChatsError.message || 'Failed to load chats'}
+                      </div>
                     </div>
-                  </div>
-                ) : isLoadingDbChats && isSignedIn ? (
-                  <div className='flex size-full items-center justify-center'>
-                    <Loader2 className='size-4 animate-spin' />
-                  </div>
-                ) : sortedChats.length > 0 ? (
-                  sortedChats.map((chat) => {
-                    return (
-                      <ContextMenu key={chat.id}>
-                        <ContextMenuTrigger asChild>
-                          <Link
-                            href={`/${chat.id}`}
-                            data-selected={chat.id === selectedChatId}
-                            className='group flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
-                          >
-                            <div className='flex w-full flex-col'>
-                              <div className='flex w-full items-center justify-between'>
-                                <span className=' truncate text-muted-foreground text-sm'>
-                                  {chat.title || 'Untitled Chat'}
-                                </span>
+                  ) : isLoadingDbChats && isSignedIn ? (
+                    <div className='flex size-full items-center justify-center'>
+                      <Loader2 className='size-4 animate-spin' />
+                    </div>
+                  ) : sortedChats.length > 0 ? (
+                    sortedChats.map((chat) => {
+                      return (
+                        <Link
+                          key={chat.id}
+                          href={`/${chat.id}`}
+                          data-selected={chat.id === selectedChatId}
+                          className='flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 py-4 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
+                        >
+                          <div className='flex w-full flex-col'>
+                            <div className='flex w-full items-center justify-between'>
+                              <span className=' truncate text-muted-foreground text-sm'>
+                                {chat.title || 'Untitled chat'}
+                              </span>
 
-                                <span className='shrink-0 text-muted-foreground text-xs'>
-                                  <span>{formatMessageDateForChatList(chat.updatedAt.toString())}</span>
-                                </span>
-                              </div>
-
-                              <div className='flex w-full items-center justify-between'>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 group-data-[state=open]:rotate-180' />
-                                  </DropdownMenuTrigger>
-
-                                  <DropdownMenuContent className='select-none'>
-                                    <DropdownMenuLabel>Options</DropdownMenuLabel>
-
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>
-                                      <Trash className='size-4' /> <span>Delete chat</span>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
+                              <span className='shrink-0 text-muted-foreground text-xs'>
+                                <span>{formatMessageDateForChatList(chat.updatedAt.toString())}</span>
+                              </span>
                             </div>
-                          </Link>
-                        </ContextMenuTrigger>
-
-                        <ContextMenuContent className='select-none'>
-                          <ContextMenuLabel>Options</ContextMenuLabel>
-
-                          <ContextMenuSeparator />
-
-                          <ContextMenuItem onClick={() => handleDeleteChat(chat.id)}>
-                            <Trash className='size-4' /> <span>Delete chat</span>
-                          </ContextMenuItem>
-                        </ContextMenuContent>
-                      </ContextMenu>
-                    )
-                  })
-                ) : (
-                  <div className='flex size-full items-center justify-center'>
-                    <div className='text-center text-muted-foreground text-sm'>
-                      {isSignedIn ? 'No chats yet.' : 'No local chats available.'}
+                          </div>
+                        </Link>
+                      )
+                    })
+                  ) : (
+                    <div className='flex size-full items-center justify-center'>
+                      <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
                     </div>
-                  </div>
-                )}
+                  )}
                 </div>
               </motion.div>
             )}

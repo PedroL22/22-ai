@@ -58,10 +58,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
   }, [isPending, message])
 
-  // Check if the chat exists and redirect if not
   useEffect(() => {
     if (chatId) {
       const exists = chatExists(chatId, !!isSignedIn)
+
       if (!exists) {
         router.push('/')
         return
@@ -69,15 +69,11 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
   }, [chatId, chatExists, isSignedIn, router])
 
-  // Load existing chat messages if chatId is provided
   useEffect(() => {
     if (chatId) {
       setActiveChat(chatId)
 
-      if (isSignedIn) {
-        // For authenticated users, messages will be loaded via the query
-        // We'll handle this in a separate useEffect
-      } else {
+      if (!isSignedIn) {
         // For anonymous users, load messages from local storage immediately
         const currentChat = getCurrentChat()
         if (currentChat && 'messages' in currentChat) {
@@ -122,17 +118,14 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       setMessage('')
 
       if (isSignedIn) {
-        // For authenticated users, create database chat with auto-generated title
         try {
           const result = await createChatWithAutoTitleMutation.mutateAsync({
             firstMessage: text,
           })
 
           if (result.success) {
-            // Navigate to the new chat
             router.push(`/${result.chatId}`)
 
-            // Update local state
             const userMessage: LocalMessage = {
               id: uuid(),
               modelId: null,
@@ -155,27 +148,21 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           console.error('Failed to create chat:', error)
         }
       } else {
-        // For anonymous users, create local chat
         try {
-          // Generate title for local chat
           const titleResult = await generateTitleMutation.mutateAsync({
             message: text,
           })
 
           const newChat = createLocalChatWithMessage(text, null, titleResult.title)
 
-          // Get AI response for local chat
           const response = await sendMessageMutation.mutateAsync({
             messages: [{ role: 'user', content: text }],
           })
 
-          // Add AI response to local chat
           addLocalMessage(newChat.id, 'assistant', response.message || 'No response generated.', response.model)
 
-          // Navigate to the new chat
           router.push(`/${newChat.id}`)
 
-          // Update local state
           const userMessage: LocalMessage = {
             id: uuid(),
             role: 'user',
@@ -200,20 +187,18 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     })
   }
 
-  const handleSendSupportText = async (text: string) => {
-    if (!text || isPending) return
+  const handleSendMessage = async () => {
+    if (!message || isPending) return
 
     if (!chatId) {
-      // No active chat, create a new one
-      await createNewChatAndSendMessage(text)
+      await createNewChatAndSendMessage(message)
       return
     }
 
-    // Existing chat logic
     const userMessage: LocalMessage = {
       id: uuid(),
       role: 'user',
-      content: text,
+      content: message,
       modelId: null,
       createdAt: new Date(),
     }
@@ -225,10 +210,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       try {
         if (isSignedIn) {
-          // For authenticated users, send to database chat
           const response = await sendMessageToChatMutation.mutateAsync({
             chatId: chatId!,
-            message: text,
+            message: message,
           })
 
           const assistantMessage: LocalMessage = {
@@ -268,7 +252,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
           // Save to local chat
           if (chatId) {
-            addLocalMessage(chatId, 'user', text)
+            addLocalMessage(chatId, 'user', message)
             addLocalMessage(chatId, 'assistant', response.message || 'No response generated', response.model)
           }
         }
@@ -276,12 +260,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         console.error('Failed to send message:', error)
       }
     })
-  }
-
-  const handleSendMessage = () => {
-    if (!message.trim() || isPending) return
-
-    handleSendSupportText(message)
   }
 
   return (
@@ -350,7 +328,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             title='Send'
             variant='default'
             size='icon'
-            disabled={!message.trim()}
+            disabled={isPending}
             isLoading={isPending}
             onClick={handleSendMessage}
           >
