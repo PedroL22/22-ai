@@ -3,6 +3,7 @@
 import { UserProfile, useClerk, useUser } from '@clerk/nextjs'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -20,6 +21,7 @@ import {
   Trash,
   User,
 } from 'lucide-react'
+import { PWAInstallPrompt } from '~/components/PWAInstallPrompt'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import {
@@ -49,7 +51,6 @@ import { formatMessageDateForChatList } from '~/lib/format-date-for-chat-list'
 import { api } from '~/trpc/react'
 
 import type { Chat as ChatType } from '@prisma/client'
-import Image from 'next/image'
 import type { LocalChat } from '~/types/local-data'
 
 type SidebarProps = {
@@ -63,8 +64,8 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
-  const { localChats, databaseChats, setDatabaseChats, deleteLocalChat, forceCleanLocalChats } = useChatStore()
-  // Fetch database chats if user is authenticated
+  const { localChats, databaseChats, setDatabaseChats, deleteLocalChat } = useChatStore()
+
   const {
     data: dbChats,
     isLoading: isLoadingDbChats,
@@ -73,21 +74,17 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     enabled: !!isSignedIn,
     refetchOnWindowFocus: false,
   })
-  // Update database chats in store when query data changes
+
   useEffect(() => {
     if (dbChats) {
       setDatabaseChats(dbChats)
     }
   }, [dbChats, setDatabaseChats])
 
-  // Combine and sort chats based on authentication state
   const allChats: Array<(LocalChat | ChatType) & { isLocal: boolean }> = isSignedIn
-    ? // When authenticated, show database chats
-      databaseChats.map((chat) => ({ ...chat, isLocal: false }))
-    : // When not authenticated, show local chats
-      localChats.map((chat) => ({ ...chat, isLocal: true }))
+    ? databaseChats.map((chat) => ({ ...chat, isLocal: false }))
+    : localChats.map((chat) => ({ ...chat, isLocal: true }))
 
-  // Sort by updated date (most recent first)
   const sortedChats = allChats.sort((a, b) => {
     const dateA = new Date(a.updatedAt).getTime()
     const dateB = new Date(b.updatedAt).getTime()
@@ -99,7 +96,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { push } = useRouter()
 
-  // Opens and closes the sidebar with CTRL+B or CMD+B
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().includes('MAC')
@@ -131,7 +127,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     isCurrentChat && push('/')
   }
   const handleLogout = async () => {
-    // Clear any database chats before logout to prevent showing them after logout
     setDatabaseChats([])
 
     await signOut()
@@ -358,10 +353,16 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                   type: 'tween',
                   duration: 0.15,
                 }}
-                className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
+                className='scrollbar-hide min-h-0 flex-1 flex-col space-y-4 overflow-y-auto'
               >
-                <div className='w-full text-center text-muted-foreground text-sm'>
-                  <div>Settings</div>
+                <div className='w-full space-y-4'>
+                  <div className='text-center font-medium text-muted-foreground text-sm'>Settings</div>
+                  <div className='space-y-3'>
+                    <div className='flex flex-col space-y-2'>
+                      <div className='font-medium text-sm'>Progressive Web App</div>
+                      <PWAInstallPrompt />
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}

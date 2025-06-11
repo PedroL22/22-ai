@@ -133,3 +133,27 @@
     display: none;
   }
 }
+
+/* PWA optimizations */
+@media (display-mode: standalone) {
+  /* Hide any browser chrome when running as PWA */
+  :root {
+    --pwa-safe-area-top: env(safe-area-inset-top, 0px);
+    --pwa-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  /* Ensure content doesn't overlap with notches on mobile */
+  body {
+    padding-top: var(--pwa-safe-area-top);
+    padding-bottom: var(--pwa-safe-area-bottom);
+  }
+}
+
+/* Improve touch targets for PWA */
+@media (pointer: coarse) {
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

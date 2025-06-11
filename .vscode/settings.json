@@ -1,18 +1,24 @@
 {
   "cSpell.words": [
     "agentic",
+    "appinstalled",
+    "beforeinstallprompt",
+    "browserconfig",
     "cloneathon",
     "datasource",
     "deepseek",
     "devstral",
     "geist",
     "mistralai",
+    "msapplication",
     "multimodality",
     "openai",
     "OPENROUTER",
+    "sqlite",
     "svix",
     "tngtech",
-    "TTFT"
+    "TTFT",
+    "vercel"
   ],
   "typescript.tsdk": "node_modules\\typescript\\lib"
 }

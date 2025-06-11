@@ -7,7 +7,6 @@ import { api } from '~/trpc/react'
 import type { Chat as ChatType } from '@prisma/client'
 import type { LocalChat } from '~/types/local-data'
 
-// Type for Chat with message count from database queries
 type ChatWithCount = ChatType & {
   _count?: {
     messages: number
@@ -18,13 +17,11 @@ export function ChatList() {
   const { user } = useUser()
   const { getAllChats, setDatabaseChats, activeChatId, setActiveChat } = useChatStore()
 
-  // Fetch database chats if user is authenticated
   const { data: dbChats, isLoading } = api.chat.getUserChats.useQuery(undefined, {
     enabled: !!user,
     refetchOnWindowFocus: false,
   })
 
-  // Update store when database chats are fetched
   useEffect(() => {
     if (dbChats) {
       setDatabaseChats(dbChats)
