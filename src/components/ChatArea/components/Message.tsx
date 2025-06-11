@@ -9,6 +9,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/comp
 
 import { formatMessageDateForChatHistory } from '~/lib/format-date-for-chat-history'
 
+import type { LocalMessage } from '~/types/local-data'
+
 const messageVariants = cva('flex flex-col gap-1 rounded-2xl px-4 py-3 text-sm', {
   variants: {
     variant: {
@@ -21,14 +23,8 @@ const messageVariants = cva('flex flex-col gap-1 rounded-2xl px-4 py-3 text-sm',
   },
 })
 
-type MessageType = {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-}
-
 type MessageProps = {
-  message: MessageType
+  message: LocalMessage
 }
 
 export const Message = ({ message }: MessageProps) => {
@@ -38,7 +34,7 @@ export const Message = ({ message }: MessageProps) => {
   }
 
   const tooltipMessage = () => {
-    const messageDate = message.timestamp
+    const messageDate = message.createdAt
 
     const weekday = messageDate.toLocaleDateString('en-US', { weekday: 'long' })
     const dateString = messageDate.toLocaleDateString('en-US', {
@@ -56,7 +52,7 @@ export const Message = ({ message }: MessageProps) => {
     const detailedDate = `${weekday.charAt(0).toUpperCase() + weekday.slice(1)}, ${dateString} at ${timeString}`
 
     if (message.role === 'user') return `Message sent by you on ${detailedDate}`
-    if (message.role === 'assistant') return `Message sent by AI on ${detailedDate}`
+    if (message.role === 'assistant') return `Message sent by ${message.modelId} on ${detailedDate}`
   }
 
   return (
@@ -79,7 +75,7 @@ export const Message = ({ message }: MessageProps) => {
               data-role={message.role}
               className='flex cursor-pointer items-center space-x-2 self-end text-muted-foreground data-[role=user]:text-zinc-300'
             >
-              <div className='text-xs'>{formatMessageDateForChatHistory(message.timestamp.toISOString())}</div>
+              <div className='text-xs'>{formatMessageDateForChatHistory(message.createdAt.toISOString())}</div>
 
               {iconToShow()}
             </div>

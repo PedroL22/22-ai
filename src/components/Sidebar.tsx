@@ -1,11 +1,13 @@
+'use client'
+
 import { UserProfile, useClerk, useUser } from '@clerk/nextjs'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import {
-  Brain,
   ChevronDown,
   Loader2,
   LogIn,
@@ -13,9 +15,9 @@ import {
   MessageCircle,
   Moon,
   PanelLeft,
-  Pencil,
   Settings,
   Sun,
+  Trash,
   User,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
@@ -38,10 +40,17 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 
+import { useChatStore } from '~/stores/useChatStore'
 import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
 import { formatMessageDateForChatList } from '~/lib/format-date-for-chat-list'
+
+import { api } from '~/trpc/react'
+
+import type { Chat as ChatType } from '@prisma/client'
+import Image from 'next/image'
+import type { LocalChat } from '~/types/local-data'
 
 type SidebarProps = {
   selectedChatId?: string | null
@@ -54,38 +63,41 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
-  //const { currentChat, setCurrentChat, chatList, setChatList } = useChatStore()
-  const chatList: {
-    data: { [key: string]: { id: string; name: string; timestamp: string; message: string; profilePicture: string } }
-    isLoading: boolean
-    isError: boolean
-    error: null
-  } = {
-    // Example chat list structure
-    data: {
-      'chat-1': {
-        id: 'chat-1',
-        name: 'Chat 1',
-        timestamp: new Date().toISOString(),
-        message: 'Hello, how can I help you today?',
-        profilePicture: 'https://example.com/profile1.jpg',
-      },
-      'chat-2': {
-        id: 'chat-2',
-        name: 'Chat 2',
-        timestamp: new Date().toISOString(),
-        message: 'Hello, how can I help you today?',
-        profilePicture: 'https://example.com/profile2.jpg',
-      },
-    },
-    isError: false,
-    isLoading: false,
-    error: null,
-  }
+  const { localChats, databaseChats, setDatabaseChats, deleteLocalChat, forceCleanLocalChats } = useChatStore()
+  // Fetch database chats if user is authenticated
+  const {
+    data: dbChats,
+    isLoading: isLoadingDbChats,
+    error: dbChatsError,
+  } = api.chat.getUserChats.useQuery(undefined, {
+    enabled: !!isSignedIn,
+    refetchOnWindowFocus: false,
+  })
+  // Update database chats in store when query data changes
+  useEffect(() => {
+    if (dbChats) {
+      setDatabaseChats(dbChats)
+    }
+  }, [dbChats, setDatabaseChats])
+
+  // Combine and sort chats based on authentication state
+  const allChats: Array<(LocalChat | ChatType) & { isLocal: boolean }> = isSignedIn
+    ? // When authenticated, show database chats
+      databaseChats.map((chat) => ({ ...chat, isLocal: false }))
+    : // When not authenticated, show local chats
+      localChats.map((chat) => ({ ...chat, isLocal: true }))
+
+  // Sort by updated date (most recent first)
+  const sortedChats = allChats.sort((a, b) => {
+    const dateA = new Date(a.updatedAt).getTime()
+    const dateB = new Date(b.updatedAt).getTime()
+    return dateB - dateA
+  })
 
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
 
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const { push } = useRouter()
 
   // Opens and closes the sidebar with CTRL+B or CMD+B
   useEffect(() => {
@@ -103,7 +115,25 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
 
+  const handleDeleteChat = (chatId: string) => {
+    const isCurrentChat = selectedChatId === chatId
+
+    if (isSignedIn) {
+      api.chat.deleteChat.useMutation({
+        onSuccess: () => {
+          deleteLocalChat(chatId)
+        },
+      })
+    } else {
+      deleteLocalChat(chatId)
+    }
+
+    isCurrentChat && push('/')
+  }
   const handleLogout = async () => {
+    // Clear any database chats before logout to prevent showing them after logout
+    setDatabaseChats([])
+
     await signOut()
 
     location.reload()
@@ -204,8 +234,22 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
           className='flex w-full min-w-80 flex-col p-4 px-6'
         >
           <div className='mt-2 mb-4 flex w-full items-center justify-center'>
-            <img src='/icons/logo-no-bg.png' alt='22 AI' className='size-12' />
+            <Image
+              src={
+                resolvedTheme === 'light'
+                  ? '/images/icons/logotype-dark-text.svg'
+                  : '/images/icons/logotype-light-text.svg'
+              }
+              alt='22AI'
+              className='h-14'
+              width={200}
+              height={200}
+            />
           </div>
+
+          <Button asChild className='mb-6'>
+            <Link href='/'>New chat</Link>
+          </Button>
 
           <AnimatePresence mode='wait'>
             {selectedTab === 'chat' && (
@@ -225,45 +269,38 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 }}
                 className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
               >
-                {chatList.isError ? (
+                {dbChatsError ? (
                   <div className='flex size-full items-center justify-center'>
-                    <div className='text-center text-destructive text-sm'>{chatList.error}</div>
+                    <div className='text-center text-destructive text-sm'>
+                      {dbChatsError.message || 'Failed to load chats'}
+                    </div>
                   </div>
-                ) : chatList.isLoading ? (
+                ) : isLoadingDbChats && isSignedIn ? (
                   <div className='flex size-full items-center justify-center'>
                     <Loader2 className='size-4 animate-spin' />
                   </div>
-                ) : chatList.data && Object.values(chatList.data).length ? (
-                  Object.values(chatList.data)
-                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                    .map((chat) => (
+                ) : sortedChats.length > 0 ? (
+                  sortedChats.map((chat) => {
+                    return (
                       <ContextMenu key={chat.id}>
                         <ContextMenuTrigger asChild>
                           <Link
-                            href={`/chat/${chat.id}`}
+                            href={`/${chat.id}`}
                             data-selected={chat.id === selectedChatId}
                             className='group flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
                           >
-                            <Avatar className='size-10'>
-                              <AvatarImage src={chat.profilePicture} alt={chat.name} />
-
-                              <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-
                             <div className='flex w-full flex-col'>
                               <div className='flex w-full items-center justify-between'>
-                                <span className='max-w-32 truncate font-medium'>{chat.name}</span>
+                                <span className=' truncate text-muted-foreground text-sm'>
+                                  {chat.title || 'Untitled Chat'}
+                                </span>
 
                                 <span className='shrink-0 text-muted-foreground text-xs'>
-                                  <span>{formatMessageDateForChatList(chat.timestamp)}</span>
+                                  <span>{formatMessageDateForChatList(chat.updatedAt.toString())}</span>
                                 </span>
                               </div>
 
                               <div className='flex w-full items-center justify-between'>
-                                <span className='max-w-[10.5rem] truncate text-muted-foreground text-sm'>
-                                  {chat.message}
-                                </span>
-
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <ChevronDown className='mt-1 size-4 shrink-0 text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 group-data-[state=open]:rotate-180' />
@@ -274,16 +311,8 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
                                     <DropdownMenuSeparator />
 
-                                    <DropdownMenuItem>
-                                      <Brain /> <span>Robot memory</span>
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuItem>
-                                      <Pencil /> <span>Customize your bot</span>
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuItem onClick={() => setSelectedTab('settings')}>
-                                      <Settings /> <span>Settings</span>
+                                    <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>
+                                      <Trash className='size-4' /> <span>Delete chat</span>
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -297,23 +326,18 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
                           <ContextMenuSeparator />
 
-                          <ContextMenuItem>
-                            <Brain /> <span>Robot memory</span>
-                          </ContextMenuItem>
-
-                          <ContextMenuItem>
-                            <Pencil /> <span>Customize your bot</span>
-                          </ContextMenuItem>
-
-                          <ContextMenuItem onClick={() => setSelectedTab('settings')}>
-                            <Settings /> <span>Settings</span>
+                          <ContextMenuItem onClick={() => handleDeleteChat(chat.id)}>
+                            <Trash className='size-4' /> <span>Delete chat</span>
                           </ContextMenuItem>
                         </ContextMenuContent>
                       </ContextMenu>
-                    ))
+                    )
+                  })
                 ) : (
                   <div className='flex size-full items-center justify-center'>
-                    <div className='text-center text-muted-foreground text-sm'>No chat available.</div>
+                    <div className='text-center text-muted-foreground text-sm'>
+                      {isSignedIn ? 'No chats yet.' : 'No local chats available.'}
+                    </div>
                   </div>
                 )}
               </motion.div>

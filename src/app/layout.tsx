@@ -1,6 +1,6 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import { Analytics } from '@vercel/analytics/next'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 
 import { Geist } from 'next/font/google'
@@ -11,14 +11,15 @@ import { ThemeProvider } from '~/components/ThemeProvider'
 import { TRPCReactProvider } from '~/trpc/react'
 
 export const metadata: Metadata = {
-  title: '22 AI',
+  title: '22AI',
   description: 'T3 Chat clone for cloneathon. I really like the number 22. ',
-  icons: [{ rel: 'icon', url: '/favicon.ico' }],
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    interactiveWidget: 'resizes-content',
-  },
+  icons: [{ rel: 'icon', url: '/images/icons/logo.svg' }],
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  interactiveWidget: 'resizes-content',
 }
 
 const geist = Geist({
@@ -32,7 +33,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <html lang='en' className={`${geist.variable}`} suppressHydrationWarning>
         <body>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-            <main className='min-h-svh bg-[url("/images/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/dark-background.svg")]'>
+            <main className='min-h-svh bg-[url("/images/bg/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/bg/dark-background.svg")]'>
               <TRPCReactProvider>
                 <Analytics />
                 {children}

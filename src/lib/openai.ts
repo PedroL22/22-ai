@@ -21,7 +21,7 @@ export async function createChatCompletion(messages: ChatMessage[], model = env.
     const completion = await openai.chat.completions.create({
       model,
       messages,
-      temperature: 0.7,
+      temperature: 0.6,
       max_completion_tokens: 1000,
     })
 
@@ -32,6 +32,7 @@ export async function createChatCompletion(messages: ChatMessage[], model = env.
     }
   } catch (error) {
     console.error('OpenAI API error:', error)
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -43,8 +44,8 @@ export async function createStreamingChatCompletion(messages: ChatMessage[], mod
   const stream = await openai.chat.completions.create({
     model,
     messages,
-    temperature: 0.7,
-    max_tokens: 1000,
+    temperature: 0.6,
+    max_completion_tokens: 1000,
     stream: true,
   })
 
