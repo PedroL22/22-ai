@@ -34,7 +34,6 @@ type ChatState = {
   setLoading: (loading: boolean) => void
   getCurrentChat: () => LocalChat | ChatType | null
   getAllChats: (isAuthenticated: boolean) => (LocalChat | ChatType)[]
-  chatExists: (chatId: string, isAuthenticated: boolean) => boolean
   // Force clear local chats and persistence
   forceCleanLocalChats: () => void
 }
@@ -175,15 +174,6 @@ export const useChatStore = create<ChatState>()(
         }
 
         return localChats.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      },
-
-      chatExists: (chatId, isAuthenticated) => {
-        const { localChats, databaseChats } = get()
-
-        if (isAuthenticated) {
-          return databaseChats.some((chat) => chat.id === chatId)
-        }
-        return localChats.some((chat) => chat.id === chatId)
       },
 
       forceCleanLocalChats: () => {

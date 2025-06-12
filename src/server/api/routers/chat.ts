@@ -202,7 +202,7 @@ export const chatRouter = createTRPCRouter({
       })
 
       const chatMessages: ChatMessage[] = messages.map((msg) => ({
-        role: msg.modelId === 'user' ? 'user' : 'assistant',
+        role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.content,
       }))
 
@@ -357,7 +357,7 @@ export const chatRouter = createTRPCRouter({
         },
       ])
 
-      const title = titleResult.success ? titleResult.message?.trim() || 'New chat' : 'New chat'
+      const title = titleResult.success ? titleResult.message?.trim().replace(/"/g, '') : 'New chat'
 
       const chat = await ctx.db.chat.create({
         data: {
@@ -416,7 +416,7 @@ export const chatRouter = createTRPCRouter({
 
       return {
         success: result.success,
-        title: result.success ? result.message?.trim() || 'New chat' : 'New chat',
+        title: result.success ? result.message?.trim().replace(/"/g, '') : 'New chat',
       }
     } catch (error) {
       console.error('Failed to generate chat title:', error)

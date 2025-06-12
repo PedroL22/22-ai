@@ -6,7 +6,7 @@ import { useChatStore } from '~/stores/useChatStore'
  * This is useful for lazy loading users when they first interact with features that require DB storage.
  */
 export async function ensureUserExists(userId: string, userEmail: string) {
-  const existingUser = await db.user.findUnique({
+  const existingUser = await db.user.findFirst({
     where: { id: userId },
   })
 

@@ -15,7 +15,6 @@ import { useChatStore } from '~/stores/useChatStore'
 
 import { api } from '~/trpc/react'
 
-import type { Message as MessageType } from '@prisma/client'
 import type { LocalMessage } from '~/types/local-data'
 
 type ChatAreaProps = {
@@ -40,14 +39,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     { enabled: !!chatId && isSignedIn }
   )
 
-  const {
-    createLocalChatWithMessage,
-    addLocalMessage,
-    updateLocalChatTitle,
-    setActiveChat,
-    getCurrentChat,
-    chatExists,
-  } = useChatStore()
+  const { createLocalChatWithMessage, addLocalMessage, updateLocalChatTitle, setActiveChat, getCurrentChat } =
+    useChatStore()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -57,17 +50,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [isPending, message])
-
-  useEffect(() => {
-    if (chatId) {
-      const exists = chatExists(chatId, !!isSignedIn)
-
-      if (!exists) {
-        router.push('/')
-        return
-      }
-    }
-  }, [chatId, chatExists, isSignedIn, router])
 
   useEffect(() => {
     if (chatId) {
@@ -100,7 +82,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   // Load database messages when query data is available
   useEffect(() => {
     if (isSignedIn && getChatMessagesQuery.data && chatId) {
-      const dbMessages: MessageType[] = getChatMessagesQuery.data.map((msg) => ({
+      const dbMessages: LocalMessage[] = getChatMessagesQuery.data.map((msg) => ({
         id: msg.id,
         role: msg.role,
         content: msg.content,
@@ -132,6 +114,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
               role: 'user',
               content: text,
               createdAt: new Date(),
+              userId: undefined,
+              chatId: result.chatId,
             }
 
             const assistantMessage: LocalMessage = {
@@ -140,6 +124,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
               role: 'assistant',
               content: result.message,
               createdAt: new Date(),
+              userId: undefined,
+              chatId: result.chatId,
             }
 
             setMessages([userMessage, assistantMessage])
@@ -169,6 +155,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             modelId: null,
             content: text,
             createdAt: new Date(),
+            userId: undefined,
+            chatId: newChat.id,
           }
 
           const assistantMessage: LocalMessage = {
@@ -177,6 +165,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             modelId: response.model,
             content: response.message || 'No response generated',
             createdAt: new Date(),
+            userId: undefined,
+            chatId: newChat.id,
           }
 
           setMessages([userMessage, assistantMessage])
@@ -201,6 +191,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       content: message,
       modelId: null,
       createdAt: new Date(),
+      userId: undefined,
+      chatId: chatId || undefined,
     }
 
     setMessages((prev) => [...prev, userMessage])
@@ -219,8 +211,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             id: uuid(),
             role: 'assistant',
             content: response.message || 'Sorry, I could not generate a response.',
-            modelId: null,
+            modelId: response.model,
             createdAt: new Date(),
+            userId: undefined,
+            chatId: chatId || undefined,
           }
 
           setMessages((prev) => [...prev, assistantMessage])
@@ -246,13 +240,15 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             content: response.message || 'Sorry, I could not generate a response.',
             modelId: response.model,
             createdAt: new Date(),
+            userId: undefined,
+            chatId: chatId || undefined,
           }
 
           setMessages((prev) => [...prev, assistantMessage])
 
           // Save to local chat
           if (chatId) {
-            addLocalMessage(chatId, 'user', message)
+            addLocalMessage(chatId, 'user', message, undefined)
             addLocalMessage(chatId, 'assistant', response.message || 'No response generated', response.model)
           }
         }
