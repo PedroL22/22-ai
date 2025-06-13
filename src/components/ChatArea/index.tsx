@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 
-import { ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
@@ -28,6 +28,9 @@ type ChatAreaProps = {
 export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<MessageType[]>([])
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const [userScrolledUp, setUserScrolledUp] = useState(false)
   const {
     addChat,
     setCurrentChatId,
@@ -68,21 +71,54 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   }, [chats, chatId, getMessages])
 
   useEffect(() => {
-    if (!isStreaming && message === '') {
+    if (!isStreaming && message === '' && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [isStreaming, message, messages, streamingMessage])
+
+  // Auto-scroll during streaming if user is at bottom and hasn't manually scrolled up
+  useEffect(() => {
+    if (isStreaming && isAtBottom && !userScrolledUp) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [isStreaming, streamingMessage, isAtBottom, userScrolledUp])
+
+  // Scroll detection
+  useEffect(() => {
+    const container = chatContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const threshold = 100 // Show button when 100px away from bottom
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < threshold
+
+      setIsAtBottom(isNearBottom)
+      setShowScrollToBottom(messages.length > 0 && !isNearBottom)
+
+      // Track if user manually scrolled up during streaming
+      if (isStreaming && !isNearBottom) {
+        setUserScrolledUp(true)
+      } else if (isNearBottom) {
+        setUserScrolledUp(false)
+      }
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [messages.length, isStreaming])
+
   const handleSuggestionClick = (suggestion: string) => {
     if (isStreaming) return
     setMessage(suggestion)
   }
-
   const handleSendMessage = async () => {
     if (!message.trim() || isStreaming) return
     if (!isSignedIn) return
 
     const userMessage = message.trim()
     setMessage('')
+    setUserScrolledUp(false) // Reset scroll tracking when sending new message
 
     try {
       let currentChatId = chatId
@@ -184,6 +220,11 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       console.error('❌ Error sending message: ', err)
     }
   }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setShowScrollToBottom(false)
+    setUserScrolledUp(false) // Reset scroll tracking when manually scrolling to bottom
+  }
 
   return (
     <div className='relative flex w-full flex-col items-center bg-accent px-6 md:px-20'>
@@ -244,9 +285,32 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
               </motion.div>
             )}
           </AnimatePresence>
-        )}
+        )}{' '}
         <div ref={messagesEndRef} className='h-1' />
       </div>
+
+      {/* Scroll to bottom button */}
+      <AnimatePresence>
+        {showScrollToBottom && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className='absolute right-4 bottom-20 z-10 md:right-8 md:bottom-24'
+          >
+            <Button
+              onClick={scrollToBottom}
+              variant='secondary'
+              size='icon'
+              className='rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-sm hover:bg-background/90'
+              title='Scroll to bottom'
+            >
+              <ArrowDown className='size-4' />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className='-translate-x-1/2 absolute bottom-0 left-1/2 flex w-full max-w-[calc(100%-3rem)] gap-2 rounded-t-xl border-6 border-background/10 border-b-0 bg-border/80 pt-2 pr-2 pb-4 pl-1 backdrop-blur-sm md:max-w-[calc(100%-10rem)] dark:bg-zinc-700/80'>
         <div className='relative flex w-full items-center space-x-2'>

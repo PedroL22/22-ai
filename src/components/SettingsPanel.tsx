@@ -1,8 +1,6 @@
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'motion/react'
 import Link from 'next/link'
-
-import { Loader2 } from 'lucide-react'
 import { PWAInstallPrompt } from '~/components/PWAInstallPrompt'
 import { Button } from '~/components/ui/button'
 import { Label } from '~/components/ui/label'
