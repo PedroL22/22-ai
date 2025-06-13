@@ -1,432 +1,19 @@
 import { z } from 'zod'
 
-import { env } from '~/env'
-import { getUserEmail } from '~/lib/clerk-user'
-import { type ChatMessage, createChatCompletion, createStreamingChatCompletion } from '~/lib/openai'
-import { ensureUserExists } from '~/lib/user-sync'
+import { createChatCompletion } from '~/lib/openai'
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '~/server/api/trpc'
+import { tryCatch } from '~/utils/try-catch'
+
+import { env } from '~/env'
+import type { Model, ModelsIds } from '~/types/models'
+import { MODEL_IDS } from '~/types/models'
 
 const chatMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),
   content: z.string(),
 })
 
-const chatMessageSchemaType = chatMessageSchema as z.ZodType<ChatMessage>
-
 export const chatRouter = createTRPCRouter({
-  sendMessage: publicProcedure
-    .input(
-      z.object({
-        messages: z.array(chatMessageSchema),
-        model: z.string().optional().default(env.OPENROUTER_DEFAULT_MODEL),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const { messages, model } = input
-
-      const result = await createChatCompletion(messages as ChatMessage[], model)
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to generate response')
-      }
-
-      return {
-        message: result.message,
-        model: model,
-        usage: result.usage,
-      }
-    }),
-
-  streamMessage: publicProcedure
-    .input(
-      z.object({
-        messages: z.array(chatMessageSchema),
-        model: z.string().optional().default(env.OPENROUTER_DEFAULT_MODEL),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const { messages, model } = input
-
-      try {
-        const stream = await createStreamingChatCompletion(messages as ChatMessage[], model)
-
-        let fullResponse = ''
-
-        for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content || ''
-          fullResponse += content
-        }
-
-        return {
-          message: fullResponse,
-        }
-      } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Failed to stream response')
-      }
-    }),
-
-  createChat: protectedProcedure
-    .input(
-      z.object({
-        title: z.string().optional(),
-        firstMessage: z.string(),
-        model: z.string().optional().default(env.OPENROUTER_DEFAULT_MODEL),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { title, firstMessage, model } = input
-      const userId = ctx.auth.userId!
-      const userEmail = getUserEmail(ctx.user)
-
-      await ensureUserExists(userId, userEmail)
-
-      const chat = await ctx.db.chat.create({
-        data: {
-          title: title || `Chat ${new Date().toLocaleDateString()}`,
-          userId,
-        },
-      })
-
-      await ctx.db.message.create({
-        data: {
-          role: 'user',
-          content: firstMessage,
-          userId,
-          chatId: chat.id,
-        },
-      })
-
-      const result = await createChatCompletion([{ role: 'user', content: firstMessage }], model)
-
-      if (result.success) {
-        await ctx.db.message.create({
-          data: {
-            role: 'assistant',
-            content: result.message || 'No response generated',
-            modelId: model,
-            userId,
-            chatId: chat.id,
-          },
-        })
-      }
-
-      return {
-        chatId: chat.id,
-        success: result.success,
-        message: result.success ? result.message || 'No response generated' : result.error || 'Unknown error',
-      }
-    }),
-
-  deleteChat: protectedProcedure.input(z.object({ chatId: z.string() })).mutation(async ({ ctx, input }) => {
-    const userId = ctx.auth.userId!
-    const { chatId } = input
-    const userEmail = getUserEmail(ctx.user)
-
-    await ensureUserExists(userId, userEmail)
-
-    const chat = await ctx.db.chat.findFirst({
-      where: { id: chatId, userId },
-    })
-    if (!chat) {
-      throw new Error('Chat not found or access denied')
-    }
-
-    await ctx.db.chat.delete({
-      where: { id: chatId },
-    })
-    return { success: true, message: 'Chat deleted successfully' }
-  }),
-
-  getUserChats: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.auth.userId!
-    const userEmail = getUserEmail(ctx.user)
-
-    await ensureUserExists(userId, userEmail)
-
-    return await ctx.db.chat.findMany({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        _count: {
-          select: { messages: true },
-        },
-      },
-    })
-  }),
-
-  getChatMessages: protectedProcedure.input(z.object({ chatId: z.string() })).query(async ({ ctx, input }) => {
-    const userId = ctx.auth.userId!
-
-    return await ctx.db.message.findMany({
-      where: {
-        chatId: input.chatId,
-        userId,
-      },
-      orderBy: { createdAt: 'asc' },
-    })
-  }),
-
-  sendMessageToChat: protectedProcedure
-    .input(
-      z.object({
-        chatId: z.string(),
-        message: z.string(),
-        model: z.string().optional().default(env.OPENROUTER_DEFAULT_MODEL),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { chatId, message, model } = input
-      const userId = ctx.auth.userId!
-
-      const chat = await ctx.db.chat.findFirst({
-        where: { id: chatId, userId },
-      })
-
-      if (!chat) {
-        throw new Error('Chat not found or access denied')
-      }
-
-      await ctx.db.message.create({
-        data: {
-          role: 'user',
-          content: message,
-          userId,
-          chatId,
-        },
-      })
-
-      const messages = await ctx.db.message.findMany({
-        where: { chatId },
-        orderBy: { createdAt: 'asc' },
-        take: 20,
-      })
-
-      const chatMessages: ChatMessage[] = messages.map((msg) => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content,
-      }))
-
-      chatMessages.push({ role: 'user', content: message })
-
-      const result = await createChatCompletion(chatMessages, model)
-
-      if (result.success) {
-        await ctx.db.message.create({
-          data: {
-            role: 'assistant',
-            content: result.message || 'No response generated',
-            modelId: model,
-            userId,
-            chatId,
-          },
-        })
-
-        await ctx.db.chat.update({
-          where: { id: chatId },
-          data: { updatedAt: new Date() },
-        })
-      }
-
-      return {
-        success: result.success,
-        message: result.success ? result.message || 'No response generated' : result.error || 'Unknown error',
-        model: model,
-      }
-    }),
-
-  syncLocalChats: protectedProcedure
-    .input(
-      z.object({
-        localChats: z.array(
-          z.object({
-            id: z.string(),
-            title: z.string().optional(),
-            createdAt: z.string().or(z.date()),
-            updatedAt: z.string().or(z.date()),
-            messages: z.array(
-              z.object({
-                id: z.string(),
-                role: z.enum(['user', 'assistant']),
-                content: z.string(),
-                modelId: z.string().nullable(),
-                createdAt: z.string().or(z.date()),
-              })
-            ),
-          })
-        ),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId!
-      const userEmail = getUserEmail(ctx.user)
-      const { localChats } = input
-
-      await ensureUserExists(userId, userEmail)
-
-      let syncedCount = 0
-      const errors: string[] = []
-      const chatIdMapping: Record<string, string> = {}
-
-      for (const localChat of localChats) {
-        try {
-          const dbChat = await ctx.db.chat.create({
-            data: {
-              title: localChat.title || `Chat ${new Date(localChat.createdAt).toLocaleDateString()}`,
-              userId,
-              createdAt: new Date(localChat.createdAt),
-              updatedAt: new Date(localChat.updatedAt),
-            },
-          })
-
-          chatIdMapping[localChat.id] = dbChat.id
-
-          if (localChat.messages.length > 0) {
-            await ctx.db.message.createMany({
-              data: localChat.messages.map((msg) => ({
-                role: msg.role,
-                content: msg.content,
-                modelId: msg.modelId,
-                userId,
-                chatId: dbChat.id,
-                createdAt: new Date(msg.createdAt),
-              })),
-            })
-          }
-
-          syncedCount++
-        } catch (error) {
-          console.error(`Failed to sync chat ${localChat.id}:`, error)
-          errors.push(
-            `Failed to sync chat "${localChat.title || 'Untitled'}": ${error instanceof Error ? error.message : 'Unknown error'}`
-          )
-        }
-      }
-
-      return {
-        synced: syncedCount,
-        errors,
-        chatIdMapping,
-      }
-    }),
-
-  createUniversalChat: publicProcedure
-    .input(
-      z.object({
-        title: z.string().optional(),
-        firstMessage: z.string(),
-        model: z.string().optional().default(env.OPENROUTER_DEFAULT_MODEL),
-        useDatabase: z.boolean().default(false),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { firstMessage, model } = input
-
-      const result = await createChatCompletion([{ role: 'user', content: firstMessage }], model)
-
-      return {
-        success: result.success,
-        message: result.success ? result.message || 'No response generated' : result.error || 'Unknown error',
-        userMessage: firstMessage,
-        modelUsed: model,
-      }
-    }),
-
-  createChatWithAutoTitle: protectedProcedure
-    .input(
-      z.object({
-        firstMessage: z.string(),
-        model: z.string().optional().default(env.OPENROUTER_DEFAULT_MODEL),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { firstMessage, model } = input
-      const userId = ctx.auth.userId!
-      const userEmail = getUserEmail(ctx.user)
-
-      await ensureUserExists(userId, userEmail)
-
-      const titleResult = await createChatCompletion([
-        {
-          role: 'system',
-          content:
-            "You are a helpful assistant that generates concise, descriptive chat titles (3-6 words) based on the user's first message. Respond only with the title, no additional text or punctuation.",
-        },
-        {
-          role: 'user',
-          content: `Generate a concise title for a chat that starts with this message: "${firstMessage}"`,
-        },
-      ])
-
-      const title = titleResult.success ? titleResult.message?.trim().replace(/"/g, '') : 'New chat'
-
-      const chat = await ctx.db.chat.create({
-        data: {
-          title,
-          userId,
-        },
-      })
-
-      await ctx.db.message.create({
-        data: {
-          role: 'user',
-          content: firstMessage,
-          userId,
-          chatId: chat.id,
-        },
-      })
-
-      const result = await createChatCompletion([{ role: 'user', content: firstMessage }], model)
-
-      if (result.success) {
-        await ctx.db.message.create({
-          data: {
-            role: 'assistant',
-            content: result.message || 'No response generated',
-            modelId: model,
-            userId,
-            chatId: chat.id,
-          },
-        })
-      }
-
-      return {
-        chatId: chat.id,
-        title: chat.title,
-        model: model,
-        success: result.success,
-        message: result.success ? result.message || 'No response generated' : result.error || 'Unknown error',
-      }
-    }),
-
-  generateChatTitle: publicProcedure.input(z.object({ message: z.string() })).mutation(async ({ input }) => {
-    const { message } = input
-
-    try {
-      const result = await createChatCompletion([
-        {
-          role: 'system',
-          content:
-            "You are a helpful assistant that generates concise, descriptive chat titles (3-6 words) based on the user's first message. Respond only with the title, no additional text or punctuation.",
-        },
-        {
-          role: 'user',
-          content: `Generate a concise title for a chat that starts with this message: "${message}"`,
-        },
-      ])
-
-      return {
-        success: result.success,
-        title: result.success ? result.message?.trim().replace(/"/g, '') : 'New chat',
-      }
-    } catch (error) {
-      console.error('Failed to generate chat title:', error)
-      return {
-        success: false,
-        title: 'New chat',
-      }
-    }
-  }),
-
   getModels: publicProcedure.query(async () => {
     return [
       {
@@ -471,6 +58,304 @@ export const chatRouter = createTRPCRouter({
         description:
           'Devstral-Small-2505 is a 24B parameter agentic LLM fine-tuned from Mistral-Small-3.1, jointly developed by Mistral AI and All Hands AI for advanced software engineering tasks. It is optimized for codebase exploration, multi-file editing, and integration into coding agents, achieving state-of-the-art results on SWE-Bench Verified (46.8%).',
       },
-    ]
+    ] as Model[]
   }),
+
+  sendMessage: publicProcedure
+    .input(
+      z.object({
+        messages: z.array(chatMessageSchema),
+        modelId: z
+          .enum(MODEL_IDS)
+          .optional()
+          .default(env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { data, error } = await tryCatch(createChatCompletion(input.messages, input.modelId))
+
+      if (error) {
+        console.error('❌ Error sending message: ', error)
+
+        return {
+          success: false,
+          message: 'Failed to send message.',
+        }
+      }
+
+      return {
+        success: true,
+        message: data.message?.trim().replace(/"/g, ''),
+      }
+    }),
+
+  generateChatTitle: publicProcedure.input(z.object({ firstMessage: z.string() })).mutation(async ({ input }) => {
+    console.log('🎯 tRPC: Starting title generation for message:', input.firstMessage)
+
+    const { data, error } = await tryCatch(
+      createChatCompletion(
+        [
+          {
+            role: 'system',
+            content:
+              "You are a helpful assistant that generates concise, descriptive chat titles (3-6 words) based on the user's first message. Respond only with the title, no additional text or punctuation.",
+          },
+          {
+            role: 'user',
+            content: `Generate a concise title for a chat that starts with this message: "${input.firstMessage}"`,
+          },
+        ],
+        env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds
+      )
+    )
+
+    if (error) {
+      console.error('❌ Error generating chat title: ', error)
+
+      return {
+        success: false,
+        title: 'New chat',
+      }
+    }
+
+    return {
+      success: true,
+      title: data.message?.trim().replace(/"/g, '') || 'New chat',
+    }
+  }),
+
+  createChat: protectedProcedure
+    .input(
+      z.object({
+        title: z.string().optional(),
+        firstMessage: z.string(),
+        modelId: z
+          .enum(MODEL_IDS)
+          .optional()
+          .default(env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const ensureUserExists = await ctx.db.user.findUnique({ where: { id: ctx.auth.userId! } })
+
+      if (!ensureUserExists) {
+        throw new Error('User not found.')
+      }
+
+      const chat = await ctx.db.chat.create({
+        data: {
+          title: input.title || `Chat ${new Date().toLocaleDateString()}`,
+          userId: ctx.auth.userId!,
+        },
+      })
+
+      await ctx.db.message.create({
+        data: {
+          role: 'user',
+          content: input.firstMessage,
+          userId: ctx.auth.userId!,
+          chatId: chat.id,
+        },
+      })
+
+      const result = await createChatCompletion([{ role: 'user', content: input.firstMessage }], input.modelId)
+
+      if (!result.success) {
+        console.error('❌ Error creating chat: ', result.error || 'Unknown error occurred.')
+
+        return {
+          success: false,
+          chatId: chat.id,
+        }
+      }
+
+      if (result.success && result.message) {
+        await ctx.db.message.create({
+          data: {
+            role: 'assistant',
+            content: result.message,
+            modelId: input.modelId,
+            userId: ctx.auth.userId!,
+            chatId: chat.id,
+          },
+        })
+
+        return {
+          success: true,
+          chatId: chat.id,
+          message: result.message,
+        }
+      }
+    }),
+
+  renameChat: protectedProcedure
+    .input(z.object({ chatId: z.string(), newTitle: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+
+      if (!chat) {
+        throw new Error('Chat not found.')
+      }
+
+      await ctx.db.chat.update({
+        where: { id: input.chatId },
+        data: { title: input.newTitle },
+      })
+
+      return {
+        success: true,
+        chatId: input.chatId,
+        newTitle: input.newTitle,
+      }
+    }),
+
+  deleteChat: protectedProcedure.input(z.object({ chatId: z.string() })).mutation(async ({ ctx, input }) => {
+    const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+
+    if (!chat) {
+      throw new Error('Chat not found.')
+    }
+
+    await ctx.db.chat.delete({ where: { id: input.chatId } })
+
+    return {
+      success: true,
+    }
+  }),
+
+  getUserChats: protectedProcedure.query(async ({ ctx }) => {
+    const ensureUserExists = await ctx.db.user.findUnique({ where: { id: ctx.auth.userId! } })
+
+    if (!ensureUserExists) {
+      throw new Error('User not found.')
+    }
+
+    const userChats = await ctx.db.chat.findMany({
+      where: { userId: ctx.auth.userId! },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return userChats.map((chat) => ({
+      id: chat.id,
+      title: chat.title,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt,
+      userId: chat.userId,
+    }))
+  }),
+
+  getChatMessages: protectedProcedure.input(z.object({ chatId: z.string() })).query(async ({ ctx, input }) => {
+    const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+
+    if (!chat) {
+      throw new Error('Chat not found.')
+    }
+
+    const messages = await ctx.db.message.findMany({
+      where: { chatId: input.chatId },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    return messages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      createdAt: message.createdAt,
+    }))
+  }),
+
+  sendMessageToChat: protectedProcedure
+    .input(
+      z.object({
+        chatId: z.string(),
+        message: z.string(),
+        modelId: z
+          .enum(MODEL_IDS)
+          .optional()
+          .default(env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const ensureUserExists = await ctx.db.user.findUnique({ where: { id: ctx.auth.userId! } })
+
+      if (!ensureUserExists) {
+        throw new Error('User not found.')
+      }
+
+      const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+
+      if (!chat) {
+        throw new Error('Chat not found.')
+      }
+
+      // Save user message to database
+      const userMessage = await ctx.db.message.create({
+        data: {
+          role: 'user',
+          content: input.message,
+          userId: ctx.auth.userId!,
+          chatId: input.chatId,
+        },
+      })
+
+      // Update chat's updatedAt timestamp
+      await ctx.db.chat.update({
+        where: { id: input.chatId },
+        data: { updatedAt: new Date() },
+      })
+
+      return {
+        success: true,
+        messageId: userMessage.id,
+        chatId: input.chatId,
+      }
+    }),
+
+  saveAssistantMessage: protectedProcedure
+    .input(
+      z.object({
+        chatId: z.string(),
+        content: z.string(),
+        modelId: z
+          .enum(MODEL_IDS)
+          .optional()
+          .default(env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const ensureUserExists = await ctx.db.user.findUnique({ where: { id: ctx.auth.userId! } })
+
+      if (!ensureUserExists) {
+        throw new Error('User not found.')
+      }
+
+      const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+
+      if (!chat) {
+        throw new Error('Chat not found.')
+      }
+
+      // Save assistant message to database
+      const assistantMessage = await ctx.db.message.create({
+        data: {
+          role: 'assistant',
+          content: input.content,
+          modelId: input.modelId,
+          userId: ctx.auth.userId!,
+          chatId: input.chatId,
+        },
+      })
+
+      // Update chat's updatedAt timestamp
+      await ctx.db.chat.update({
+        where: { id: input.chatId },
+        data: { updatedAt: new Date() },
+      })
+
+      return {
+        success: true,
+        messageId: assistantMessage.id,
+        chatId: input.chatId,
+      }
+    }),
 })

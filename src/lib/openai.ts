@@ -1,6 +1,9 @@
 import OpenAI from 'openai'
 
 import { env } from '~/env.js'
+import { tryCatch } from '~/utils/try-catch'
+
+import type { ModelsIds } from '~/types/models'
 
 export const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -16,38 +19,55 @@ export type ChatMessage = {
   content: string
 }
 
-export async function createChatCompletion(messages: ChatMessage[], model = env.OPENROUTER_DEFAULT_MODEL) {
-  try {
-    const completion = await openai.chat.completions.create({
-      model,
+export const createChatCompletion = async (messages: ChatMessage[], modelId: ModelsIds) => {
+  const { data, error } = await tryCatch(
+    openai.chat.completions.create({
+      model: modelId ?? (env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
       messages,
-      temperature: 0.6,
+      temperature: 0.7,
       max_completion_tokens: 1000,
     })
+  )
 
-    return {
-      success: true,
-      message: completion.choices[0]?.message?.content || '',
-      usage: completion.usage,
-    }
-  } catch (error) {
-    console.error('OpenAI API error:', error)
+  if (error) {
+    console.error('❌ OpenAI API error:', error)
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      error: error.message || 'Unknown error occurred.',
     }
+  }
+
+  return {
+    success: true,
+    message: data.choices[0]?.message?.content || '',
+    usage: data.usage,
   }
 }
 
-export async function createStreamingChatCompletion(messages: ChatMessage[], model = env.OPENROUTER_DEFAULT_MODEL) {
-  const stream = await openai.chat.completions.create({
-    model,
-    messages,
-    temperature: 0.6,
-    max_completion_tokens: 1000,
-    stream: true,
-  })
+export const createChatCompletionStream = async (messages: ChatMessage[], modelId: ModelsIds) => {
+  const { data, error } = await tryCatch(
+    openai.chat.completions.create({
+      model: modelId ?? (env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+      messages,
+      temperature: 0.7,
+      max_completion_tokens: 1000,
+      stream: true,
+    })
+  )
 
-  return stream
+  if (error) {
+    console.error('❌ OpenAI API error:', error)
+
+    return {
+      success: false,
+      error: error.message || 'Unknown error occurred.',
+      stream: null,
+    }
+  }
+
+  return {
+    success: true,
+    stream: data,
+  }
 }

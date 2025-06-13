@@ -5,6 +5,8 @@ import { Webhook } from 'svix'
 import { env } from '~/env'
 import { createUser, deleteUser } from '~/lib/user-sync'
 
+import type { WebhookEvent } from '@clerk/nextjs/server'
+
 const WEBHOOK_SECRET = env.CLERK_WEBHOOK_SECRET
 
 export async function POST(req: Request) {
@@ -31,15 +33,16 @@ export async function POST(req: Request) {
       'svix-id': svix_id,
       'svix-timestamp': svix_timestamp,
       'svix-signature': svix_signature,
-    })
+    }) as WebhookEvent
   } catch (err) {
-    console.error('Error verifying webhook:', err)
-    return new Response('Error occurred', {
+    console.error('❌ Error verifying webhook: ', err)
+    return new Response('Error occurred.', {
       status: 400,
     })
   }
 
   const eventType = evt.type
+
   if (eventType === 'user.created') {
     const { id, email_addresses } = evt.data
     const primaryEmail =
@@ -47,9 +50,8 @@ export async function POST(req: Request) {
 
     try {
       await createUser(id, primaryEmail)
-      console.log(`Created user ${id} in database`)
-    } catch (error) {
-      console.error(`Error creating user ${id}:`, error)
+    } catch (err) {
+      console.error(`❌ Error creating user ${id}: `, err)
     }
   }
 
@@ -58,9 +60,8 @@ export async function POST(req: Request) {
 
     try {
       await deleteUser(id)
-      console.log(`Deleted user ${id} from database`)
-    } catch (error) {
-      console.error(`Error deleting user ${id}:`, error)
+    } catch (err) {
+      console.error(`❌ Error deleting user ${id}: `, err)
     }
   }
 

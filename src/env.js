@@ -11,7 +11,6 @@ export const env = createEnv({
     CLERK_SECRET_KEY: z.string(),
     CLERK_WEBHOOK_SECRET: z.string(),
     OPENROUTER_API_KEY: z.string(),
-    OPENROUTER_DEFAULT_MODEL: z.string(),
     OPENROUTER_SITE_URL: z.string().url().optional(),
     OPENROUTER_SITE_NAME: z.string().optional(),
   },
@@ -26,6 +25,7 @@ export const env = createEnv({
     NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: z.string(),
     NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: z.string(),
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
+    NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL: z.string(),
   },
 
   /**
@@ -41,9 +41,9 @@ export const env = createEnv({
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-    OPENROUTER_DEFAULT_MODEL: process.env.OPENROUTER_DEFAULT_MODEL,
     OPENROUTER_SITE_URL: process.env.OPENROUTER_SITE_URL,
     OPENROUTER_SITE_NAME: process.env.OPENROUTER_SITE_NAME,
+    NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL: process.env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

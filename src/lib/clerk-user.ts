@@ -11,7 +11,7 @@ import type { User } from '@clerk/nextjs/server'
  * @param user - The Clerk user object
  * @returns The user's email address or empty string if none found
  */
-export function getUserEmail(user: User | null | undefined): string {
+export const getUserEmail = (user: User | null | undefined): string => {
   if (!user) return ''
 
   return user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || ''
@@ -23,12 +23,14 @@ export function getUserEmail(user: User | null | undefined): string {
  * @param user - The Clerk user object
  * @returns Array of email objects with metadata
  */
-export function getAllUserEmails(user: User | null | undefined): Array<{
+export const getAllUserEmails = (
+  user: User | null | undefined
+): Array<{
   id: string
   email: string
   verified: boolean
   primary: boolean
-}> {
+}> => {
   if (!user?.emailAddresses) return []
 
   return user.emailAddresses.map((email) => ({
@@ -45,7 +47,7 @@ export function getAllUserEmails(user: User | null | undefined): Array<{
  * @param user - The Clerk user object
  * @returns The user's verified email address or empty string if none found
  */
-export function getVerifiedUserEmail(user: User | null | undefined): string {
+export const getVerifiedUserEmail = (user: User | null | undefined): string => {
   if (!user?.emailAddresses) return ''
 
   const primaryEmail = user.primaryEmailAddress
@@ -64,6 +66,6 @@ export function getVerifiedUserEmail(user: User | null | undefined): string {
  * @param user - The Clerk user object
  * @returns Boolean indicating if user has an email
  */
-export function userHasEmail(user: User | null | undefined): user is User {
+export const userHasEmail = (user: User | null | undefined): user is User => {
   return Boolean(user && getUserEmail(user))
 }

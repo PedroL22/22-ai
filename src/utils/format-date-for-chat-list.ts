@@ -3,7 +3,7 @@
  * @param timestamp - ISO timestamp string
  * @returns Formatted string (e.g., "14:30", "Yesterday", "15/03/2024")
  */
-export function formatMessageDateForChatList(timestamp: string): string {
+export const formatMessageDateForChatList = (timestamp: string): string => {
   const messageDate = new Date(timestamp)
   const now = new Date()
   const yesterday = new Date(now)

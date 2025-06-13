@@ -78,7 +78,11 @@
               }
             ]
           }
-        }
+        },
+        "noUnusedImports": "warn",
+        "noUnusedFunctionParameters": "warn",
+        "noUnusedLabels": "warn",
+        "noUnusedVariables": "warn"
       },
       "nursery": {
         "useSortedClasses": {

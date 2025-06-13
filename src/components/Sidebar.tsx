@@ -21,18 +21,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { Label } from '~/components/ui/label'
+import { Switch } from '~/components/ui/switch'
 
 import { useChatStore } from '~/stores/useChatStore'
 import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
-import { formatMessageDateForChatList } from '~/lib/format-date-for-chat-list'
-import { isMobile } from '~/lib/is-mobile'
+import { formatMessageDateForChatList } from '~/utils/format-date-for-chat-list'
+import { isMobile } from '~/utils/is-mobile'
 
 import { api } from '~/trpc/react'
 
 import type { Chat as ChatType } from '@prisma/client'
-import type { LocalChat } from '~/types/local-data'
 
 type SidebarProps = {
   selectedChatId?: string | null
@@ -43,9 +44,9 @@ type SidebarProps = {
  */
 export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
+  const { chats: localChats, removeChat: deleteLocalChat, clearChats } = useChatStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
-  const { localChats, databaseChats, setDatabaseChats, deleteLocalChat } = useChatStore()
 
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
 
@@ -53,21 +54,13 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     data: dbChats,
     isLoading: isLoadingDbChats,
     error: dbChatsError,
+    refetch: refetchChats,
   } = api.chat.getUserChats.useQuery(undefined, {
     enabled: !!isSignedIn,
     refetchOnWindowFocus: false,
   })
 
-  // Set the initial selected tab to 'chat' if not set
-  useEffect(() => {
-    if (dbChats) {
-      setDatabaseChats(dbChats)
-    }
-  }, [dbChats, setDatabaseChats])
-
-  const allChats: Array<(LocalChat | ChatType) & { isLocal: boolean }> = isSignedIn
-    ? databaseChats.map((chat) => ({ ...chat, isLocal: false }))
-    : localChats.map((chat) => ({ ...chat, isLocal: true }))
+  const allChats: Array<ChatType & { isLocal: boolean }> = localChats.map((chat) => ({ ...chat, isLocal: true }))
 
   const sortedChats = allChats.sort((a, b) => {
     const dateA = new Date(a.updatedAt).getTime()
@@ -77,6 +70,19 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { push } = useRouter()
+
+  // Set the initial tab to 'chat' when the sidebar opens
+  useEffect(() => {
+    setSelectedTab('chat')
+  }, [isOpen])
+
+  // Always close sidebar on mobile when the component mounts
+  // This ensures the sidebar is closed when navigating to a new page on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsOpen(false)
+    }
+  }, [setIsOpen])
 
   // Handle Ctrl+B
   useEffect(() => {
@@ -94,23 +100,20 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
 
-  // Always close sidebar on mobile when the component mounts
-  // This ensures the sidebar is closed when navigating to a new page on mobile
-  useEffect(() => {
-    if (isMobile) {
-      setIsOpen(false)
-    }
-  }, [setIsOpen])
+  const deleteChatMutation = api.chat.deleteChat.useMutation({
+    onSuccess: () => {
+      // Refetch chats after deletion
+      if (isSignedIn) {
+        refetchChats()
+      }
+    },
+  })
 
   const handleDeleteChat = (chatId: string) => {
     const isCurrentChat = selectedChatId === chatId
 
     if (isSignedIn) {
-      api.chat.deleteChat.useMutation({
-        onSuccess: () => {
-          deleteLocalChat(chatId)
-        },
-      })
+      deleteChatMutation.mutate({ chatId })
     } else {
       deleteLocalChat(chatId)
     }
@@ -119,7 +122,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   }
 
   const handleLogout = async () => {
-    setDatabaseChats([])
+    clearChats()
 
     await signOut()
 
@@ -260,7 +263,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                   {dbChatsError ? (
                     <div className='flex size-full items-center justify-center'>
                       <div className='text-center text-destructive text-sm'>
-                        {dbChatsError.message || 'Failed to load chats'}
+                        {dbChatsError.message || 'Failed to load chats.'}
                       </div>
                     </div>
                   ) : isLoadingDbChats && isSignedIn ? (
@@ -278,9 +281,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                         >
                           <div className='flex w-full flex-col'>
                             <div className='flex w-full items-center justify-between'>
-                              <span className=' truncate text-muted-foreground text-sm'>
-                                {chat.title || 'Untitled chat'}
-                              </span>
+                              <span className=' truncate text-muted-foreground text-sm'>{chat.title || ''}</span>
 
                               <span className='shrink-0 text-muted-foreground text-xs'>
                                 <span>{formatMessageDateForChatList(chat.updatedAt.toString())}</span>
@@ -319,22 +320,49 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 <div className='w-full space-y-4'>
                   <div className='text-center font-medium text-muted-foreground text-sm'>Settings</div>
 
-                  <div className='space-y-4'>
-                    {/* PWA Section */}
-                    <div className='space-y-3'>
-                      <div className='flex items-center gap-2'>
-                        <div className='font-medium text-sm'>Progressive Web App</div>
-                        <div className='flex h-4 w-4 items-center justify-center rounded-full bg-primary/20'>
-                          <div className='h-2 w-2 rounded-full bg-primary' />
+                  <div className='space-y-8'>
+                    {/* DB sync section */}
+                    <div>
+                      <div className='flex items-center space-x-2'>
+                        <div className='font-medium text-sm'>Database Sync</div>
+
+                        <div className='flex size-4 items-center justify-center rounded-full bg-primary/20'>
+                          <div className='size-2 rounded-full bg-primary' />
                         </div>
                       </div>
-                      <div className='text-muted-foreground text-xs leading-relaxed'>
-                        Install 22AI as a native app for a better experience with offline support and faster loading.
+
+                      <div className='mt-1 text-muted-foreground text-xs leading-relaxed'>
+                        Sync your chats with the cloud for access across devices.
                       </div>
-                      <PWAInstallPrompt />
+
+                      {isSignedIn ? (
+                        <div className='mt-3 flex items-center space-x-2'>
+                          <Switch id='sync-chats' />
+                          <Label htmlFor='sync-chats'>Sync chats</Label>
+                        </div>
+                      ) : (
+                        <Button variant='outline' size='sm' className='mt-3' asChild>
+                          <Link href='/sign-in'>Sign in to sync</Link>
+                        </Button>
+                      )}
                     </div>
 
-                    {/* Future settings sections can be added here */}
+                    {/* PWA Section */}
+                    <div>
+                      <div className='flex items-center space-x-2'>
+                        <div className='font-medium text-sm'>Progressive Web App</div>
+
+                        <div className='flex size-4 items-center justify-center rounded-full bg-primary/20'>
+                          <div className='size-2 rounded-full bg-primary' />
+                        </div>
+                      </div>
+
+                      <div className='mt-1 mb-2 text-muted-foreground text-xs leading-relaxed'>
+                        Install 22AI as a native app for a better experience with offline support and faster loading.
+                      </div>
+
+                      <PWAInstallPrompt />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -389,7 +417,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 href='/sign-in'
                 className='flex items-center space-x-2 rounded-lg p-3 transition-all ease-in hover:bg-accent dark:hover:bg-accent/35'
               >
-                <LogIn className='size-6' />
+                <LogIn className='size-5' />
 
                 <span className='font-medium'>Sign in</span>
               </Link>
