@@ -142,7 +142,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   return (
     <aside className='relative'>
       {/* Floating toggle button */}
-      <div className='absolute top-4 left-2.5 z-50'>
+      <div className='absolute top-4 left-2.5 z-50 md:left-3.5'>
         <Button
           variant='ghost'
           size='icon'
