@@ -50,7 +50,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const router = useRouter()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const chatContainerRef = useRef<HTMLDivElement>(null) // Load messages when chat changes
+  const chatContainerRef = useRef<HTMLDivElement>(null)
 
   // Load messages when chatId changes or component mounts
   useEffect(() => {

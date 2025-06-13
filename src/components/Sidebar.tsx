@@ -8,7 +8,19 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-import { ChevronDown, Loader2, LogIn, LogOut, MessageCircle, Moon, PanelLeft, Settings, Sun, User } from 'lucide-react'
+import {
+  ChevronDown,
+  Github,
+  Loader2,
+  LogIn,
+  LogOut,
+  MessageCircle,
+  Moon,
+  PanelLeft,
+  Settings,
+  Sun,
+  User,
+} from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog'
@@ -178,44 +190,57 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
             </Button>
           </div>
 
-          {/* Theme switcher */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon' aria-label='Change theme' className='dark:text-accent-foreground'>
-                <Sun className='dark:-rotate-90 size-5 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0' />
-
-                <Moon className='absolute size-5 h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
-
-                <span className='sr-only'>Change theme</span>
+          <div>
+            <Link
+              href='https://github.com/PedroL22/22ai'
+              target='_blank'
+              rel='noopener noreferrer'
+              aria-label='GitHub repository'
+            >
+              <Button variant='ghost' size='icon' className='cursor-pointer dark:text-accent-foreground'>
+                <Github className='size-5' />
               </Button>
-            </DropdownMenuTrigger>
+            </Link>
 
-            <DropdownMenuContent align='end' side='right'>
-              <DropdownMenuItem
-                data-selected={theme === 'system'}
-                className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                onClick={() => setTheme('system')}
-              >
-                System
-              </DropdownMenuItem>
+            {/* Theme switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant='ghost' size='icon' aria-label='Change theme' className='dark:text-accent-foreground'>
+                  <Sun className='dark:-rotate-90 size-5 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0' />
 
-              <DropdownMenuItem
-                data-selected={theme === 'dark'}
-                className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                onClick={() => setTheme('dark')}
-              >
-                Dark
-              </DropdownMenuItem>
+                  <Moon className='absolute size-5 h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
 
-              <DropdownMenuItem
-                data-selected={theme === 'light'}
-                className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                onClick={() => setTheme('light')}
-              >
-                Light
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <span className='sr-only'>Change theme</span>
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align='end' side='right'>
+                <DropdownMenuItem
+                  data-selected={theme === 'system'}
+                  className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+                  onClick={() => setTheme('system')}
+                >
+                  System
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  data-selected={theme === 'dark'}
+                  className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+                  onClick={() => setTheme('dark')}
+                >
+                  Dark
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  data-selected={theme === 'light'}
+                  className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+                  onClick={() => setTheme('light')}
+                >
+                  Light
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Sidebar content */}
