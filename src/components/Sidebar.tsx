@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { ChevronDown, Loader2, LogIn, LogOut, MessageCircle, Moon, PanelLeft, Settings, Sun, User } from 'lucide-react'
-import { PWAInstallPrompt } from '~/components/PWAInstallPrompt'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog'
@@ -21,8 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import { Label } from '~/components/ui/label'
-import { Switch } from '~/components/ui/switch'
+import { SettingsPanel } from './SettingsPanel'
 
 import { useChatStore } from '~/stores/useChatStore'
 import { useSidebarStore } from '~/stores/useSidebarStore'
@@ -133,7 +131,14 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     <aside className='relative'>
       {/* Floating toggle button */}
       <div className='absolute top-4 left-2.5 z-50'>
-        <Button variant='ghost' size='icon' aria-label='Open sidebar' onClick={() => setIsOpen(!isOpen)}>
+        <Button
+          variant='ghost'
+          size='icon'
+          aria-label='Open sidebar'
+          onClick={() => setIsOpen(!isOpen)}
+          data-state={isOpen ? 'open' : 'closed'}
+          className='backdrop-blur-sm data-[state=closed]:bg-white/10 md:data-[state=closed]:bg-transparent'
+        >
           <PanelLeft className='size-5' />
         </Button>
       </div>
@@ -300,73 +305,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
               </motion.div>
             )}
 
-            {selectedTab === 'settings' && (
-              <motion.div
-                key='settings'
-                variants={{
-                  initial: { opacity: 0 },
-                  animate: { opacity: 1 },
-                  exit: { opacity: 0 },
-                }}
-                initial='initial'
-                animate='animate'
-                exit='exit'
-                transition={{
-                  type: 'tween',
-                  duration: 0.15,
-                }}
-                className='scrollbar-hide min-h-0 flex-1 flex-col space-y-4 overflow-y-auto'
-              >
-                <div className='w-full space-y-4'>
-                  <div className='text-center font-medium text-muted-foreground text-sm'>Settings</div>
-
-                  <div className='space-y-8'>
-                    {/* DB sync section */}
-                    <div>
-                      <div className='flex items-center space-x-2'>
-                        <div className='font-medium text-sm'>Database Sync</div>
-
-                        <div className='flex size-4 items-center justify-center rounded-full bg-primary/20'>
-                          <div className='size-2 rounded-full bg-primary' />
-                        </div>
-                      </div>
-
-                      <div className='mt-1 text-muted-foreground text-xs leading-relaxed'>
-                        Sync your chats with the cloud for access across devices.
-                      </div>
-
-                      {isSignedIn ? (
-                        <div className='mt-3 flex items-center space-x-2'>
-                          <Switch id='sync-chats' />
-                          <Label htmlFor='sync-chats'>Sync chats</Label>
-                        </div>
-                      ) : (
-                        <Button variant='outline' size='sm' className='mt-3' asChild>
-                          <Link href='/sign-in'>Sign in to sync</Link>
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* PWA Section */}
-                    <div>
-                      <div className='flex items-center space-x-2'>
-                        <div className='font-medium text-sm'>Progressive Web App</div>
-
-                        <div className='flex size-4 items-center justify-center rounded-full bg-primary/20'>
-                          <div className='size-2 rounded-full bg-primary' />
-                        </div>
-                      </div>
-
-                      <div className='mt-1 mb-2 text-muted-foreground text-xs leading-relaxed'>
-                        Install 22AI as a native app for a better experience with offline support and faster loading.
-                      </div>
-
-                      <PWAInstallPrompt />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+            {selectedTab === 'settings' && <SettingsPanel />}
           </AnimatePresence>
 
           {/* User stuff */}
