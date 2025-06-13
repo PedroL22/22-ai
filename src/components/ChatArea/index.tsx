@@ -9,6 +9,7 @@ import { ArrowUp } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
+import { EmptyState } from './components/EmptyState'
 import { Message } from './components/Message'
 
 import { useChatStore } from '~/stores/useChatStore'
@@ -71,6 +72,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [isStreaming, message, messages, streamingMessage])
+  const handleSuggestionClick = (suggestion: string) => {
+    if (isStreaming) return
+    setMessage(suggestion)
+  }
 
   const handleSendMessage = async () => {
     if (!message.trim() || isStreaming) return
@@ -177,7 +182,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       )
     } catch (err) {
       console.error('❌ Error sending message: ', err)
-      setIsStreaming(false)
     }
   }
 
@@ -187,55 +191,60 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         ref={chatContainerRef}
         className='scrollbar-hide w-full flex-1 space-y-3 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-16 [@supports(-moz-appearance:none)]:py-22'
       >
-        <AnimatePresence initial={false}>
-          {messages.map((msg, index) => (
-            <motion.div
-              key={`${msg.role}-${msg.content}-${new Date(msg.createdAt).getTime()}-${index}`}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-              transition={{ duration: 0.2 }}
-              layout='position'
-              className='flex flex-col'
-            >
-              <Message message={msg} />
-            </motion.div>
-          ))}
+        {messages.length === 0 && !isStreaming ? (
+          <div className='flex items-center justify-center pb-4 md:h-full md:pb-0'>
+            <EmptyState onSuggestionClickAction={handleSuggestionClick} />
+          </div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {messages.map((msg, index) => (
+              <motion.div
+                key={`${msg.role}-${msg.content}-${new Date(msg.createdAt).getTime()}-${index}`}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                transition={{ duration: 0.2 }}
+                layout='position'
+                className='flex flex-col'
+              >
+                <Message message={msg} />
+              </motion.div>
+            ))}
 
-          {isStreaming && streamingMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              layout='position'
-              className='flex flex-col'
-            >
-              <Message
-                message={{
-                  role: 'assistant',
-                  content: streamingMessage,
-                  createdAt: new Date(),
-                  userId: '',
-                  chatId: chatId || '',
-                  modelId: env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds,
-                }}
-              />
-            </motion.div>
-          )}
+            {isStreaming && streamingMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                layout='position'
+                className='flex flex-col'
+              >
+                <Message
+                  message={{
+                    role: 'assistant',
+                    content: streamingMessage,
+                    createdAt: new Date(),
+                    userId: '',
+                    chatId: chatId || '',
+                    modelId: env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds,
+                  }}
+                />
+              </motion.div>
+            )}
 
-          {isStreaming && !streamingMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              layout='position'
-              className='flex flex-col'
-            >
-              <div className='animate-pulse p-4 text-muted-foreground text-sm'>Assistant is thinking...</div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+            {isStreaming && !streamingMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                layout='position'
+                className='flex flex-col'
+              >
+                <div className='animate-pulse p-4 text-muted-foreground text-sm'>Assistant is thinking...</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
         <div ref={messagesEndRef} className='h-1' />
       </div>
 
