@@ -428,4 +428,22 @@ export const chatRouter = createTRPCRouter({
       })),
     }))
   }),
+
+  clearUserChatsFromDatabase: protectedProcedure.mutation(async ({ ctx }) => {
+    const ensureUserExists = await ctx.db.user.findUnique({ where: { id: ctx.auth.userId! } })
+
+    if (!ensureUserExists) {
+      throw new Error('User not found.')
+    }
+
+    // Delete all chats and their messages for this user
+    await ctx.db.chat.deleteMany({
+      where: { userId: ctx.auth.userId! },
+    })
+
+    return {
+      success: true,
+      message: 'All user chats deleted from database',
+    }
+  }),
 })

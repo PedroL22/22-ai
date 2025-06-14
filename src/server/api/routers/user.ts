@@ -12,7 +12,7 @@ export const userRouter = createTRPCRouter({
       userSettings = await ctx.db.userSettings.create({
         data: {
           userId: ctx.auth.userId,
-          syncWithDb: null,
+          syncWithDb: true,
           language: 'en',
         },
       })
@@ -24,7 +24,7 @@ export const userRouter = createTRPCRouter({
   updateSettings: protectedProcedure
     .input(
       z.object({
-        syncWithDb: z.string().optional(),
+        syncWithDb: z.boolean().optional(),
         language: z.string().optional(),
       })
     )

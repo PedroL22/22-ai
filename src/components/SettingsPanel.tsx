@@ -60,8 +60,8 @@ export function SettingsPanel() {
 
                 <Switch
                   id='sync-chats'
-                  checked={settings?.syncWithDb === 'enabled'}
-                  onCheckedChange={(checked) => updateSetting('syncWithDb', checked ? 'enabled' : 'disabled')}
+                  checked={settings?.syncWithDb}
+                  onCheckedChange={(checked) => updateSetting('syncWithDb', !!checked)}
                   disabled={isUpdating || isLoading}
                 />
               </div>

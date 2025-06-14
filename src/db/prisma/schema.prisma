@@ -58,7 +58,7 @@ model Message {
 model UserSettings {
     id         String   @id @default(uuid())
     userId     String   @unique
-    syncWithDb String?
+    syncWithDb Boolean  @default(true)
     language   String?
     createdAt  DateTime @default(now())
     updatedAt  DateTime @updatedAt

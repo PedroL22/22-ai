@@ -143,7 +143,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
       >
         {/* Left vertical button panel */}
         <div className='flex w-16 shrink-0 flex-col items-center justify-between bg-background p-2 py-4'>
-          <div className='flex flex-col items-center space-y-2 pt-13'>
+          <div className='flex flex-col items-center space-y-2 pt-11'>
             <Button
               variant={selectedTab === 'chat' ? 'secondary' : 'ghost'}
               size='icon'
@@ -265,16 +265,13 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 </Button>
 
                 <div className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'>
-                  {(!isSignedIn || chatsDisplayMode === 'local') && sortedChats.length === 0 ? (
+                  {(!isSignedIn || chatsDisplayMode === 'local') && !isSyncing && sortedChats.length === 0 ? (
                     <div className='flex size-full items-center justify-center'>
                       <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
                     </div>
                   ) : isSyncing ? (
                     <div className='flex size-full items-center justify-center'>
-                      <div className='flex flex-col items-center space-y-2'>
-                        <Loader2 className='size-4 animate-spin' />
-                        <div className='text-center text-muted-foreground text-xs'>Syncing chats...</div>
-                      </div>
+                      <Loader2 className='size-4 animate-spin' />
                     </div>
                   ) : sortedChats.length > 0 ? (
                     sortedChats.map((chat) => {

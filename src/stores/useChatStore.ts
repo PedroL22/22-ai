@@ -24,6 +24,7 @@ type ChatStore = {
   getMessages: (chatId: string) => MessageType[]
   clearMessages: (chatId: string) => void
   syncChatsFromDatabase: (chats: ChatWithMessages[]) => void
+  moveDbChatsToLocal: (chats: ChatWithMessages[]) => void
   getLocalChatsForSync: () => ChatWithMessages[]
   clearLocalChatsAfterSync: () => void
   setChatsDisplayMode: (mode: 'local' | 'synced') => void
@@ -77,6 +78,7 @@ export const useChatStore = create<ChatStore>()(
           chats: state.chats.map((chat) => (chat.id === chatId ? { ...chat, messages: [] } : chat)),
         })),
       syncChatsFromDatabase: (chats) => set({ chats, chatsDisplayMode: 'synced' }),
+      moveDbChatsToLocal: (chats) => set({ chats, chatsDisplayMode: 'local' }),
       getLocalChatsForSync: () => {
         const state = get()
         return state.chats.filter((chat) => chat.messages.length > 0) // Only sync chats with messages

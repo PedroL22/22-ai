@@ -3,6 +3,8 @@
 import { useUser } from '@clerk/nextjs'
 import { useEffect, useRef } from 'react'
 
+import { useUserSettings } from '~/lib/useUserSettings'
+
 import { useChatStore } from '~/stores/useChatStore'
 
 import { api } from '~/trpc/react'
@@ -13,11 +15,18 @@ import { api } from '~/trpc/react'
  * - When user logs out: clear synced chats and show only local chats
  */
 export const useChatSync = () => {
-  const { getLocalChatsForSync, syncChatsFromDatabase, setChatsDisplayMode, chatsDisplayMode, setSyncing } =
-    useChatStore()
+  const {
+    getLocalChatsForSync,
+    syncChatsFromDatabase,
+    moveDbChatsToLocal,
+    setChatsDisplayMode,
+    chatsDisplayMode,
+    setSyncing,
+  } = useChatStore()
   const { isSignedIn, isLoaded } = useUser()
-
+  const { settings } = useUserSettings()
   const syncMutation = api.chat.syncLocalChatsToDatabase.useMutation()
+  const clearDbChatsMutation = api.chat.clearUserChatsFromDatabase.useMutation()
   const getUserChatsQuery = api.chat.getAllUserChatsWithMessages.useQuery(undefined, {
     enabled: isSignedIn && isLoaded,
     retry: false,
@@ -25,12 +34,13 @@ export const useChatSync = () => {
 
   const hasAttemptedSync = useRef(false)
   const previousSignInState = useRef<boolean | undefined>(undefined)
+  const previousSyncSetting = useRef<boolean | null | undefined>(undefined)
 
   // Initialize syncing state based on auth status
   useEffect(() => {
     if (!isLoaded) return
 
-    if (!isSignedIn) {
+    if (!isSignedIn && !!settings?.syncWithDb) {
       setSyncing(false)
     }
   }, [isLoaded, isSignedIn, setSyncing])
@@ -45,13 +55,13 @@ export const useChatSync = () => {
     previousSignInState.current = isSignedIn
 
     if (isSignedIn) {
-      // User just logged in - sync local chats to database
+      // User just logged in - check sync settings and handle accordingly
       handleUserLogin()
     } else {
       // User just logged out - switch to local mode
       handleUserLogout()
     }
-  }, [isSignedIn, isLoaded])
+  }, [isSignedIn, isLoaded, settings?.syncWithDb])
 
   // Handle database chats loading after sync
   useEffect(() => {
@@ -62,8 +72,35 @@ export const useChatSync = () => {
     }
   }, [getUserChatsQuery.data, getUserChatsQuery.isLoading, isSignedIn, syncChatsFromDatabase, setSyncing])
 
+  // Handle sync setting changes when user is signed in
+  useEffect(() => {
+    if (!isSignedIn || !isLoaded || !settings) return
+
+    const currentSyncSetting = settings.syncWithDb
+
+    // Only proceed if sync setting has actually changed
+    if (previousSyncSetting.current === currentSyncSetting) return
+
+    previousSyncSetting.current = currentSyncSetting
+
+    if (!currentSyncSetting && getUserChatsQuery.data) {
+      // User disabled sync - move DB chats to local storage
+      handleSyncDisabled()
+    } else if (currentSyncSetting) {
+      // User enabled sync - sync local chats to database
+      handleSyncEnabled()
+    }
+  }, [isSignedIn, isLoaded, settings?.syncWithDb, getUserChatsQuery.data, moveDbChatsToLocal, clearDbChatsMutation])
+
   const handleUserLogin = async () => {
     if (hasAttemptedSync.current) return
+
+    // Check if sync is enabled in user settings
+    if (!settings?.syncWithDb) {
+      console.log('⚠️ Sync is disabled - switching to local mode only')
+      setChatsDisplayMode('local')
+      return
+    }
 
     setSyncing(true)
 
@@ -101,9 +138,38 @@ export const useChatSync = () => {
     setChatsDisplayMode('local')
     setSyncing(false) // Ensure syncing is stopped when logged out
     hasAttemptedSync.current = false
-    // Note: We don't clear local chats here - they remain in localStorage
-    // but we switch the display mode so only local chats are shown
   }
+
+  const handleSyncDisabled = async () => {
+    console.log('🔄 User disabled sync - moving DB chats to local storage')
+    setSyncing(true)
+
+    try {
+      if (getUserChatsQuery.data) {
+        // Move DB chats to local storage and switch to local mode
+        moveDbChatsToLocal(getUserChatsQuery.data)
+        console.log('✅ DB chats moved to local storage.')
+
+        await clearDbChatsMutation.mutateAsync()
+        console.log('✅ DB chats cleared from database.')
+      }
+    } catch (error) {
+      console.error('❌ Failed to move DB chats to local: ', error)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const handleSyncEnabled = () => {
+    console.log('🔄 User enabled sync - syncing local chats to database')
+
+    // Reset sync attempt flag so sync can happen again
+    hasAttemptedSync.current = false
+
+    // Trigger sync process
+    handleUserLogin()
+  }
+
   return {
     syncError: syncMutation.error || getUserChatsQuery.error,
     chatsDisplayMode,
