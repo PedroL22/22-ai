@@ -114,7 +114,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   }
   const handleSendMessage = async () => {
     if (!message.trim() || isStreaming) return
-    if (!isSignedIn) return
 
     const userMessage = message.trim()
     setMessage('')
