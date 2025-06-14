@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import {
@@ -41,10 +40,6 @@ import { clerkThemes } from '~/lib/clerk-themes'
 import { formatMessageDateForChatList } from '~/utils/format-date-for-chat-list'
 import { isMobile } from '~/utils/is-mobile'
 
-import { api } from '~/trpc/react'
-
-import type { Chat as ChatType } from '@prisma/client'
-
 type SidebarProps = {
   selectedChatId?: string | null
 }
@@ -54,32 +49,33 @@ type SidebarProps = {
  */
 export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
-  const { chats: localChats, removeChat: deleteLocalChat, clearChats } = useChatStore()
+  const { chats: localChats, clearChats, chatsDisplayMode, isSyncing } = useChatStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
 
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
 
-  const {
-    data: dbChats,
-    isLoading: isLoadingDbChats,
-    error: dbChatsError,
-    refetch: refetchChats,
-  } = api.chat.getUserChats.useQuery(undefined, {
-    enabled: !!isSignedIn,
-    refetchOnWindowFocus: false,
-  })
+  const chatsToDisplay = (() => {
+    if (!isSignedIn) {
+      return localChats.map((chat) => ({ ...chat, isLocal: true }))
+    }
 
-  const allChats: Array<ChatType & { isLocal: boolean }> = localChats.map((chat) => ({ ...chat, isLocal: true }))
+    if (chatsDisplayMode === 'synced') {
+      // Signed in and synced - show all chats from store (which contains synced data)
+      return localChats.map((chat) => ({ ...chat, isLocal: false }))
+    }
 
-  const sortedChats = allChats.sort((a, b) => {
+    // Fallback to local chats during sync
+    return localChats.map((chat) => ({ ...chat, isLocal: true }))
+  })()
+
+  const sortedChats = chatsToDisplay.sort((a, b) => {
     const dateA = new Date(a.updatedAt).getTime()
     const dateB = new Date(b.updatedAt).getTime()
     return dateB - dateA
   })
 
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const { push } = useRouter()
 
   // Set the initial tab to 'chat' when the sidebar opens
   useEffect(() => {
@@ -109,27 +105,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
-
-  const deleteChatMutation = api.chat.deleteChat.useMutation({
-    onSuccess: () => {
-      // Refetch chats after deletion
-      if (isSignedIn) {
-        refetchChats()
-      }
-    },
-  })
-
-  const handleDeleteChat = (chatId: string) => {
-    const isCurrentChat = selectedChatId === chatId
-
-    if (isSignedIn) {
-      deleteChatMutation.mutate({ chatId })
-    } else {
-      deleteLocalChat(chatId)
-    }
-
-    isCurrentChat && push('/')
-  }
 
   const handleLogout = async () => {
     clearChats()
@@ -290,15 +265,16 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 </Button>
 
                 <div className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'>
-                  {dbChatsError ? (
+                  {(!isSignedIn || chatsDisplayMode === 'local') && sortedChats.length === 0 ? (
                     <div className='flex size-full items-center justify-center'>
-                      <div className='text-center text-destructive text-sm'>
-                        {dbChatsError.message || 'Failed to load chats.'}
-                      </div>
+                      <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
                     </div>
-                  ) : isLoadingDbChats && isSignedIn ? (
+                  ) : isSyncing ? (
                     <div className='flex size-full items-center justify-center'>
-                      <Loader2 className='size-4 animate-spin' />
+                      <div className='flex flex-col items-center space-y-2'>
+                        <Loader2 className='size-4 animate-spin' />
+                        <div className='text-center text-muted-foreground text-xs'>Syncing chats...</div>
+                      </div>
                     </div>
                   ) : sortedChats.length > 0 ? (
                     sortedChats.map((chat) => {
@@ -376,7 +352,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
               </DropdownMenu>
             </div>
           ) : (
-            <div className='flex justify-center pt-4`shrink-0'>
+            <div className='flex shrink-0 justify-center pt-4'>
               <Link
                 href='/sign-in'
                 className='flex items-center space-x-2 rounded-lg p-3 transition-all ease-in hover:bg-accent dark:hover:bg-accent/35'

@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 import { Geist } from 'next/font/google'
 import '~/styles/globals.css'
 
+import { ChatSyncProvider } from '~/components/ChatSyncProvider'
 import { ThemeProvider } from '~/components/ThemeProvider'
 
 import { TRPCReactProvider } from '~/trpc/react'
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
             <main className='min-h-svh bg-[url("/images/bg/light-background.svg")] bg-center bg-cover dark:bg-[url("/images/bg/dark-background.svg")]'>
               <TRPCReactProvider>
+                <ChatSyncProvider />
                 <Analytics />
                 {children}
               </TRPCReactProvider>

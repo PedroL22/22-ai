@@ -311,15 +311,26 @@ export const chatRouter = createTRPCRouter({
       }
     }),
 
-  saveAssistantMessage: protectedProcedure
+  syncLocalChatsToDatabase: protectedProcedure
     .input(
       z.object({
-        chatId: z.string(),
-        content: z.string(),
-        modelId: z
-          .enum(MODEL_IDS)
-          .optional()
-          .default(env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+        chats: z.array(
+          z.object({
+            id: z.string(),
+            title: z.string(),
+            createdAt: z.date(),
+            updatedAt: z.date(),
+            messages: z.array(
+              z.object({
+                id: z.string(),
+                role: z.enum(['user', 'assistant']),
+                content: z.string(),
+                modelId: z.string().nullable(),
+                createdAt: z.date(),
+              })
+            ),
+          })
+        ),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -329,33 +340,92 @@ export const chatRouter = createTRPCRouter({
         throw new Error('User not found.')
       }
 
-      const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+      const syncedChats = []
 
-      if (!chat) {
-        throw new Error('Chat not found.')
+      for (const localChat of input.chats) {
+        // Check if chat already exists in database
+        const existingChat = await ctx.db.chat.findUnique({
+          where: { id: localChat.id },
+        })
+
+        let chat: { id: string; title: string | null; createdAt: Date; updatedAt: Date; userId: string }
+        if (!existingChat) {
+          // Create new chat in database
+          chat = await ctx.db.chat.create({
+            data: {
+              id: localChat.id,
+              title: localChat.title,
+              userId: ctx.auth.userId!,
+              createdAt: localChat.createdAt,
+              updatedAt: localChat.updatedAt,
+            },
+          })
+        } else {
+          chat = existingChat
+        }
+
+        // Sync messages for this chat
+        for (const localMessage of localChat.messages) {
+          const existingMessage = await ctx.db.message.findUnique({
+            where: { id: localMessage.id },
+          })
+
+          if (!existingMessage) {
+            await ctx.db.message.create({
+              data: {
+                id: localMessage.id,
+                role: localMessage.role,
+                content: localMessage.content,
+                modelId: localMessage.modelId,
+                userId: ctx.auth.userId!,
+                chatId: chat.id,
+                createdAt: localMessage.createdAt,
+              },
+            })
+          }
+        }
+
+        syncedChats.push(chat)
       }
-
-      // Save assistant message to database
-      const assistantMessage = await ctx.db.message.create({
-        data: {
-          role: 'assistant',
-          content: input.content,
-          modelId: input.modelId,
-          userId: ctx.auth.userId!,
-          chatId: input.chatId,
-        },
-      })
-
-      // Update chat's updatedAt timestamp
-      await ctx.db.chat.update({
-        where: { id: input.chatId },
-        data: { updatedAt: new Date() },
-      })
 
       return {
         success: true,
-        messageId: assistantMessage.id,
-        chatId: input.chatId,
+        syncedChats,
       }
     }),
+
+  getAllUserChatsWithMessages: protectedProcedure.query(async ({ ctx }) => {
+    const ensureUserExists = await ctx.db.user.findUnique({ where: { id: ctx.auth.userId! } })
+
+    if (!ensureUserExists) {
+      throw new Error('User not found.')
+    }
+
+    const userChatsWithMessages = await ctx.db.chat.findMany({
+      where: { userId: ctx.auth.userId! },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return userChatsWithMessages.map((chat) => ({
+      id: chat.id,
+      title: chat.title,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt,
+      userId: chat.userId,
+      messages: chat.messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        modelId: message.modelId,
+        createdAt: message.createdAt,
+        userId: message.userId,
+        chatId: message.chatId,
+      })),
+    }))
+  }),
 })

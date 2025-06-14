@@ -23,6 +23,13 @@ type ChatStore = {
   addMessage: (chatId: string, message: MessageType) => void
   getMessages: (chatId: string) => MessageType[]
   clearMessages: (chatId: string) => void
+  syncChatsFromDatabase: (chats: ChatWithMessages[]) => void
+  getLocalChatsForSync: () => ChatWithMessages[]
+  clearLocalChatsAfterSync: () => void
+  setChatsDisplayMode: (mode: 'local' | 'synced') => void
+  chatsDisplayMode: 'local' | 'synced'
+  isSyncing: boolean
+  setSyncing: (syncing: boolean) => void
 }
 
 export const useChatStore = create<ChatStore>()(
@@ -33,6 +40,8 @@ export const useChatStore = create<ChatStore>()(
       chats: [],
       streamingMessage: '',
       isStreaming: false,
+      chatsDisplayMode: 'local',
+      isSyncing: false,
       setStreamingMessage: (message) =>
         set((state) => ({
           streamingMessage: typeof message === 'function' ? message(state.streamingMessage) : message,
@@ -67,9 +76,23 @@ export const useChatStore = create<ChatStore>()(
         set((state) => ({
           chats: state.chats.map((chat) => (chat.id === chatId ? { ...chat, messages: [] } : chat)),
         })),
+      syncChatsFromDatabase: (chats) => set({ chats, chatsDisplayMode: 'synced' }),
+      getLocalChatsForSync: () => {
+        const state = get()
+        return state.chats.filter((chat) => chat.messages.length > 0) // Only sync chats with messages
+      },
+      clearLocalChatsAfterSync: () => set({ chats: [] }),
+      setChatsDisplayMode: (mode) => set({ chatsDisplayMode: mode }),
+      setSyncing: (syncing) => set({ isSyncing: syncing }),
     }),
     {
       name: 'chat-store',
+      partialize: (state) => ({
+        // Only persist local chats and display mode
+        chats: state.chatsDisplayMode === 'local' ? state.chats : [],
+        chatsDisplayMode: state.chatsDisplayMode,
+        currentChatId: state.currentChatId,
+      }),
       storage: {
         getItem: (name) => {
           const str = localStorage.getItem(name)

@@ -1,6 +1,5 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
@@ -46,7 +45,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
   const generateTitleMutation = api.chat.generateChatTitle.useMutation()
 
-  const { isSignedIn } = useUser()
   const router = useRouter()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
