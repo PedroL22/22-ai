@@ -57,9 +57,9 @@ export const EmptyState = ({ onSuggestionClickAction }: EmptyStateProps) => {
           transition={{ duration: 0.5, delay: 0.3 }}
           className='space-y-2'
         >
-          <h1 className='font-bold text-2xl text-foreground md:text-3xl'>Welcome to 22AI</h1>
+          <h1 className='font-bold text-2xl text-foreground sm:text-3xl'>Welcome to 22AI</h1>
 
-          <p className='text-muted-foreground text-sm md:text-base'>
+          <p className='text-muted-foreground text-sm sm:text-base'>
             Your intelligent AI assistant is ready to help. What would you like to explore today?
           </p>
         </motion.div>
@@ -69,7 +69,7 @@ export const EmptyState = ({ onSuggestionClickAction }: EmptyStateProps) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className='grid w-full max-w-2xl grid-cols-1 gap-3 md:grid-cols-2'
+        className='grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2'
       >
         {suggestions.map((suggestion, index) => (
           <motion.button

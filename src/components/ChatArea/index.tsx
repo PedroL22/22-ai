@@ -28,7 +28,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<MessageType[]>([])
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
-  const [isAtBottom, setIsAtBottom] = useState(true)
   const [userScrolledUp, setUserScrolledUp] = useState(false)
   const {
     addChat,
@@ -101,42 +100,18 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
   }, [isStreaming, message, messages, streamingMessage])
 
-  // Auto-scroll during streaming if user is at bottom and hasn't manually scrolled up
+  // Auto-scroll during streaming if user hasn't manually scrolled up
   useEffect(() => {
-    if (isStreaming && isAtBottom && !userScrolledUp) {
+    if (isStreaming && !userScrolledUp) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [isStreaming, streamingMessage, isAtBottom, userScrolledUp])
-
-  // Scroll detection
-  useEffect(() => {
-    const container = chatContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container
-      const threshold = 100 // Show button when 100px away from bottom
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < threshold
-
-      setIsAtBottom(isNearBottom)
-      setShowScrollToBottom(messages.length > 0 && !isNearBottom)
-
-      // Track if user manually scrolled up during streaming
-      if (isStreaming && !isNearBottom) {
-        setUserScrolledUp(true)
-      } else if (isNearBottom) {
-        setUserScrolledUp(false)
-      }
-    }
-
-    container.addEventListener('scroll', handleScroll)
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [messages.length, isStreaming])
+  }, [isStreaming, streamingMessage, userScrolledUp])
 
   const handleSuggestionClick = (suggestion: string) => {
     if (isStreaming) return
     setMessage(suggestion)
   }
+
   const handleSendMessage = async () => {
     if (!message.trim() || isStreaming) return
 
@@ -301,6 +276,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       console.error('❌ Error sending message: ', err)
     }
   }
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     setShowScrollToBottom(false)
@@ -308,7 +284,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   }
 
   return (
-    <div className='relative flex w-full flex-col items-center bg-accent px-6 md:px-20'>
+    <div className='relative flex w-full flex-col items-center bg-accent px-6 sm:px-20'>
       {/* Shared indicator */}
       {isSharedChat && (
         <div className='absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 font-medium text-primary text-xs backdrop-blur-sm'>
@@ -323,10 +299,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       <div
         ref={chatContainerRef}
-        className='scrollbar-hide w-full flex-1 space-y-8 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-36 md:[&:not(*:is(@supports(-moz-appearance:none)))]:py-38 [@supports(-moz-appearance:none)]:py-42 md:[@supports(-moz-appearance:none)]:py-44'
+        className='scrollbar-hide w-full flex-1 space-y-10 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-36 sm:[&:not(*:is(@supports(-moz-appearance:none)))]:py-38 [@supports(-moz-appearance:none)]:py-42 sm:[@supports(-moz-appearance:none)]:py-44'
       >
         {messages.length === 0 && !isStreaming ? (
-          <div className='flex items-center justify-center pb-4 md:h-full md:pb-0'>
+          <div className='flex items-center justify-center pb-4 sm:h-full sm:pb-0'>
             <EmptyState onSuggestionClickAction={handleSuggestionClick} />
           </div>
         ) : (
@@ -389,7 +365,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className='absolute right-1/2 not-[@supports(-moz-appearance:none)]:bottom-32.5 z-10 translate-x-1/2 md:not-[@supports(-moz-appearance:none)]:bottom-30 [@supports(-moz-appearance:none)]:bottom-36'
+            className='absolute right-1/2 not-[@supports(-moz-appearance:none)]:bottom-32.5 z-10 translate-x-1/2 sm:not-[@supports(-moz-appearance:none)]:bottom-30 [@supports(-moz-appearance:none)]:bottom-36'
           >
             <Button
               variant='secondary'
@@ -403,7 +379,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         )}
       </AnimatePresence>
 
-      <div className='-translate-x-1/2 absolute bottom-0 left-1/2 flex w-full max-w-[calc(100%-2rem)] flex-col gap-2 rounded-t-xl border-6 border-zinc-600/5 border-b-0 bg-border/80 pt-2 pr-2 pb-4 pl-1 shadow-2xl backdrop-blur-sm md:max-w-[calc(100%-8rem)] dark:border-background/10 dark:bg-zinc-700/80'>
+      <div className='-translate-x-1/2 absolute bottom-0 left-1/2 flex w-full max-w-[calc(100%-2rem)] flex-col gap-2 rounded-t-xl border-6 border-zinc-600/5 border-b-0 bg-border/80 pt-2 pr-2 pb-4 pl-1 shadow-2xl backdrop-blur-sm sm:max-w-[calc(100%-8rem)] dark:border-background/10 dark:bg-zinc-700/80'>
         <div className='relative flex w-full items-center space-x-2'>
           <Textarea
             id='chat-message-input'
@@ -413,7 +389,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             title={isSharedChat && !isOwner ? 'Only the chat owner can send messages' : 'Type your message here...'}
             disabled={isStreaming || (isSharedChat && !isOwner)}
             value={message}
-            className='scrollbar-hide min-h-9 resize-none whitespace-nowrap rounded-t-xl border-none bg-transparent text-sm shadow-none placeholder:select-none placeholder:text-sm focus-visible:ring-0 md:text-base md:placeholder:text-base dark:bg-transparent'
+            className='scrollbar-hide min-h-9 resize-none whitespace-nowrap rounded-t-xl border-none bg-transparent text-sm shadow-none placeholder:select-none placeholder:text-sm focus-visible:ring-0 sm:text-base sm:placeholder:text-base dark:bg-transparent'
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {

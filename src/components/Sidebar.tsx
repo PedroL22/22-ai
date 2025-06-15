@@ -169,7 +169,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
             </Button>
           </div>
 
-          <div>
+          <div className='flex flex-col space-y-2'>
             <Link
               href='https://github.com/PedroL22/22ai'
               target='_blank'
@@ -383,7 +383,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
       {/* Manage account dialog */}
       <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
-        <DialogContent className='overflow-auto rounded-2xl border-none p-0 sm:max-w-[880px]'>
+        <DialogContent className='overflow-auto rounded-2xl border-none p-0 md:max-w-[880px]'>
           <DialogHeader className='sr-only'>
             <DialogTitle />
             <DialogDescription />

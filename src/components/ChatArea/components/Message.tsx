@@ -27,7 +27,8 @@ import { MODELS, type ModelsDevelopers, type ModelsIds } from '~/types/models'
 const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl px-4 py-3 text-sm', {
   variants: {
     variant: {
-      user: 'max-w-[70%] self-end bg-border/80 bg-primary',
+      user: 'max-w-[70%] self-end bg-primary',
+      // user: 'max-w-[70%] self-end bg-border/80', boring theme
       assistant: 'max-w-full self-start bg-transparent',
     },
   },
@@ -70,9 +71,9 @@ export const Message = ({ message }: MessageProps) => {
 
       <div
         data-role={message.role}
-        className='data-[role=user]:-bottom-9 -bottom-8 absolute flex flex-row-reverse items-center gap-1 self-start whitespace-nowrap text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 data-[role=user]:right-0 data-[role=assistant]:left-3 data-[role=user]:flex-row data-[role=user]:self-end dark:data-[role=user]:text-zinc-300'
+        className='data-[role=user]:-bottom-11 -bottom-8 absolute flex flex-row-reverse items-center self-start whitespace-nowrap text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 data-[role=user]:right-0 data-[role=assistant]:left-3 data-[role=user]:flex-row data-[role=user]:self-end sm:gap-1 dark:data-[role=user]:text-zinc-300'
       >
-        <p className='px-1 text-xs'>{`${message.modelId ? `${getModelName(message.modelId as ModelsIds)} ` : ''}${formatMessageDateForChatHistory(message.createdAt.toISOString())}`}</p>
+        <p className='shrink-0 whitespace-nowrap px-1 text-xs sm:px-3'>{`${message.modelId ? `${getModelName(message.modelId as ModelsIds)} ` : ''}${formatMessageDateForChatHistory(message.createdAt.toISOString())}`}</p>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -80,13 +81,13 @@ export const Message = ({ message }: MessageProps) => {
               variant='ghost'
               title='Retry message'
               data-role={message.role}
-              className='aspect-square size-8 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+              className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
             >
               <RefreshCcw className='size-4' />
             </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent>
+          <DropdownMenuContent side='top'>
             <DropdownMenuItem className='flex items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'>
               <RefreshCcw className='size-3' /> <span className='font-medium'>Retry same</span>
             </DropdownMenuItem>
@@ -96,16 +97,16 @@ export const Message = ({ message }: MessageProps) => {
             {MODELS.map((model) => (
               <DropdownMenuItem
                 key={model.id}
-                className='flex items-center justify-between space-y-1 px-3 py-2 transition-all ease-in'
+                className='flex items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
               >
-                <div className='flex w-full items-center space-x-2'>
+                <div className='flex items-center space-x-2'>
                   {developerIcon(model.developer)}
 
                   <div className='flex w-full items-center justify-between space-x-4'>
-                    <span className='font-medium text-muted-foreground text-xs'>{model.name}</span>
+                    <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>{model.name}</span>
 
                     <Tooltip>
-                      <TooltipTrigger className='cursor-pointer '>
+                      <TooltipTrigger className='shrink-0 cursor-pointer'>
                         <Info className='size-3' />
                       </TooltipTrigger>
 
@@ -124,7 +125,7 @@ export const Message = ({ message }: MessageProps) => {
           variant='ghost'
           title='Copy message'
           data-role={message.role}
-          className='aspect-square size-8 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+          className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
           onClick={() => {
             navigator.clipboard.writeText(message.content)
             toast.success('Copied to clipboard!')

@@ -53,7 +53,7 @@ export const ModelSelector = () => {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className='w-[300px] px-1 py-1'>
+      <PopoverContent side='top' onOpenAutoFocus={(e) => e.preventDefault()} className='p-1'>
         <Command>
           <CommandInput placeholder='Search models...' />
 
@@ -69,12 +69,12 @@ export const ModelSelector = () => {
                     setSelectedModelId(currentValue as ModelsIds)
                     setOpen(false)
                   }}
-                  className='flex items-center justify-between space-y-1 px-3 py-2 transition-all ease-in'
+                  className='flex items-center justify-between py-0 transition-all ease-in sm:space-y-1 sm:px-3 sm:py-2'
                 >
                   <div className='flex items-center space-x-2'>
                     {developerIcon(model.developer)}
 
-                    <span className='font-medium text-muted-foreground text-xs'>{model.name}</span>
+                    <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>{model.name}</span>
 
                     <Tooltip>
                       <TooltipTrigger className='cursor-pointer '>
@@ -89,7 +89,7 @@ export const ModelSelector = () => {
 
                   <Check
                     className={cn(
-                      'size-4 text-primary transition-all ease-in',
+                      'size-4 shrink-0 text-primary transition-all ease-in',
                       selectedModelId === model.id ? 'opacity-100' : 'opacity-0'
                     )}
                   />
