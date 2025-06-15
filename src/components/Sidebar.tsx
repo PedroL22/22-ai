@@ -147,7 +147,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
       >
         {/* Left vertical button panel */}
         <div className='flex w-16 shrink-0 flex-col items-center justify-between bg-background p-2 py-4'>
-          <div className='flex flex-col items-center space-y-2 pt-11'>
+          <div className='flex flex-col items-center space-y-2 pt-13 md:pt-11'>
             <Button
               variant={selectedTab === 'chat' ? 'secondary' : 'ghost'}
               size='icon'
@@ -285,7 +285,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
                         return (
                           <div key={groupKey} className='space-y-1 pt-1'>
-                            <h3 className='px-3 font-medium text-muted-foreground/60 text-xs tracking-wider'>
+                            <h3 className='px-3 font-medium text-muted-foreground/75 text-xs tracking-wider dark:text-muted-foreground/60'>
                               {groupKey === 'pinned' ? (
                                 <div className='flex items-center gap-1'>
                                   <Pin className='size-3' />

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import type { Chat as ChatType, Message as MessageType } from '@prisma/client'
+import type { ModelsIds } from '~/types/models'
 
 // Extended Chat type that includes messages (like in database with relations)
 type ChatWithMessages = ChatType & {
@@ -12,6 +13,8 @@ type ChatStore = {
   currentChatId?: string
   setCurrentChatId: (chatId: string) => void
   chats: ChatWithMessages[]
+  selectedModelId: ModelsIds
+  setSelectedModelId: (modelId: ModelsIds) => void
   streamingMessage: string
   isStreaming: boolean
   setStreamingMessage: (message: string | ((prev: string) => string)) => void
@@ -41,6 +44,8 @@ export const useChatStore = create<ChatStore>()(
       currentChatId: undefined,
       setCurrentChatId: (chatId) => set({ currentChatId: chatId }),
       chats: [],
+      selectedModelId: 'deepseek/deepseek-chat-v3-0324:free',
+      setSelectedModelId: (modelId) => set({ selectedModelId: modelId }),
       streamingMessage: '',
       isStreaming: false,
       chatsDisplayMode: 'local',

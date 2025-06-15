@@ -10,6 +10,7 @@ import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 import { EmptyState } from './components/EmptyState'
 import { Message } from './components/Message'
+import { ModelSelector } from './components/ModelSelector'
 
 import { useChatStore } from '~/stores/useChatStore'
 import { api } from '~/trpc/react'
@@ -323,7 +324,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       <div
         ref={chatContainerRef}
-        className='scrollbar-hide w-full flex-1 space-y-3 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-16 [@supports(-moz-appearance:none)]:py-22'
+        className='scrollbar-hide w-full flex-1 space-y-3 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-30 md:[&:not(*:is(@supports(-moz-appearance:none)))]:py-27 [@supports(-moz-appearance:none)]:py-33 md:[@supports(-moz-appearance:none)]:py-32'
       >
         {messages.length === 0 && !isStreaming ? (
           <div className='flex items-center justify-center pb-4 md:h-full md:pb-0'>
@@ -391,22 +392,21 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className='absolute right-4 bottom-20 z-10 md:right-8 md:bottom-24'
+            className='absolute right-1/2 not-[@supports(-moz-appearance:none)]:bottom-32.5 z-10 translate-x-1/2 md:not-[@supports(-moz-appearance:none)]:bottom-30 [@supports(-moz-appearance:none)]:bottom-36'
           >
             <Button
-              onClick={scrollToBottom}
               variant='secondary'
-              size='icon'
-              className='rounded-full border border-border/50 bg-background/80 shadow-lg backdrop-blur-sm hover:bg-background/90'
               title='Scroll to bottom'
+              className='rounded-full border-2 border-zinc-600/5 bg-border/80 text-xs shadow-2xl backdrop-blur-sm dark:border-background/10'
+              onClick={scrollToBottom}
             >
-              <ArrowDown className='size-4' />
+              <ArrowDown className='size-3.5' /> Scroll to bottom
             </Button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className='-translate-x-1/2 absolute bottom-0 left-1/2 flex w-full max-w-[calc(100%-3rem)] gap-2 rounded-t-xl border-6 border-background/10 border-b-0 bg-border/80 pt-2 pr-2 pb-4 pl-1 backdrop-blur-sm md:max-w-[calc(100%-10rem)] dark:bg-zinc-700/80'>
+      <div className='-translate-x-1/2 absolute bottom-0 left-1/2 flex w-full max-w-[calc(100%-2rem)] flex-col gap-2 rounded-t-xl border-6 border-zinc-600/5 border-b-0 bg-border/80 pt-2 pr-2 pb-4 pl-1 shadow-2xl backdrop-blur-sm md:max-w-[calc(100%-8rem)] dark:border-background/10 dark:bg-zinc-700/80'>
         <div className='relative flex w-full items-center space-x-2'>
           <Textarea
             id='chat-message-input'
@@ -442,6 +442,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             <ArrowUp />
           </Button>
         </div>
+
+        <ModelSelector />
       </div>
     </div>
   )

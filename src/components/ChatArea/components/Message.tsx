@@ -10,7 +10,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/comp
 import { formatMessageDateForChatHistory } from '~/utils/format-date-for-chat-history'
 
 import type { Message as MessageType } from '@prisma/client'
-import type { ModelsIds, ModelsNames } from '~/types/models'
+import type { ModelsIds } from '~/types/models'
+import { getModelName } from '~/utils/get-model-name'
 
 const messageVariants = cva('flex flex-col gap-1 rounded-2xl px-4 py-3 text-sm', {
   variants: {
@@ -32,19 +33,6 @@ export const Message = ({ message }: MessageProps) => {
   const iconToShow = () => {
     if (message.role === 'user') return <User className='size-4' />
     if (message.role === 'assistant') return <Bot className='size-4' />
-  }
-
-  const getModelName = (modelId: ModelsIds): ModelsNames => {
-    const modelNames: Record<ModelsIds, ModelsNames> = {
-      'google/gemini-2.0-flash-exp:free': 'Gemini 2.0 Flash Experimental',
-      'google/gemma-3-27b-it:free': 'Gemma 3 27B',
-      'deepseek/deepseek-chat-v3-0324:free': 'DeepSeek V3 0324',
-      'deepseek/deepseek-r1-0528:free': 'R1 0528',
-      'tngtech/deepseek-r1t-chimera:free': 'DeepSeek R1T Chimera',
-      'mistralai/devstral-small:free': 'Devstral Small',
-    }
-
-    return modelNames[modelId] || modelId
   }
 
   const tooltipMessage = () => {
