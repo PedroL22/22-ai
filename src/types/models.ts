@@ -1,12 +1,3 @@
-export const MODEL_IDS = [
-  'google/gemini-2.0-flash-exp:free',
-  'google/gemma-3-27b-it:free',
-  'deepseek/deepseek-chat-v3-0324:free',
-  'deepseek/deepseek-r1-0528:free',
-  'tngtech/deepseek-r1t-chimera:free',
-  'mistralai/devstral-small:free',
-] as const
-
 export type ModelsIds =
   | 'google/gemini-2.0-flash-exp:free'
   | 'google/gemma-3-27b-it:free'

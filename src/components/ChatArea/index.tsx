@@ -15,12 +15,10 @@ import { ModelSelector } from './components/ModelSelector'
 import { useChatStore } from '~/stores/useChatStore'
 import { api } from '~/trpc/react'
 
-import { env } from '~/env'
 import { createStreamingChatCompletion } from '~/lib/streaming'
 import { useRealtimeSync } from '~/lib/useRealtimeSync'
 
 import type { Chat as ChatType, Message as MessageType } from '@prisma/client'
-import type { ModelsIds } from '~/types/models'
 
 type ChatAreaProps = {
   chatId?: string
@@ -43,6 +41,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     setStreamingMessage,
     setIsStreaming,
     renameChat,
+    selectedModelId,
   } = useChatStore()
 
   // Get current chat to check if it's shared
@@ -252,7 +251,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       await createStreamingChatCompletion(
         allMessages,
-        env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds,
+        selectedModelId,
         (chunk) => {
           if (chunk.type === 'chunk' && chunk.content) {
             setStreamingMessage((prev) => {
@@ -269,7 +268,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             createdAt: new Date(),
             userId: '',
             chatId: currentChatId!,
-            modelId: env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds,
+            modelId: selectedModelId,
           } // Add to store first
           addMessage(currentChatId!, assistantMessage)
 
@@ -361,7 +360,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                     createdAt: new Date(),
                     userId: '',
                     chatId: chatId || '',
-                    modelId: env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds,
+                    modelId: selectedModelId,
                   }}
                 />
               </motion.div>

@@ -7,7 +7,9 @@ import { createChatCompletionStream } from '~/lib/openai'
 import { tryCatch } from '~/utils/try-catch'
 
 import type { ModelsIds } from '~/types/models'
-import { MODEL_IDS } from '~/types/models'
+import { MODELS } from '~/types/models'
+
+const MODEL_IDS = MODELS.map((model) => model.id) as [ModelsIds, ...ModelsIds[]]
 
 const chatMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),

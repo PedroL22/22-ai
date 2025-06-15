@@ -5,8 +5,11 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from '~/server/
 import { tryCatch } from '~/utils/try-catch'
 
 import { env } from '~/env'
+
 import type { ModelsIds } from '~/types/models'
-import { MODEL_IDS } from '~/types/models'
+import { MODELS } from '~/types/models'
+
+const MODEL_IDS = MODELS.map((model) => model.id) as [ModelsIds, ...ModelsIds[]]
 
 const chatMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant']),
@@ -25,7 +28,7 @@ export const chatRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input }) => {
-      const { data, error } = await tryCatch(createChatCompletion(input.messages, input.modelId))
+      const { data, error } = await tryCatch(createChatCompletion(input.messages, input.modelId as ModelsIds))
 
       if (error) {
         console.error('❌ Error sending message: ', error)
@@ -97,7 +100,7 @@ export const chatRouter = createTRPCRouter({
 
       const chat = await ctx.db.chat.create({
         data: {
-          title: input.title || `Chat ${new Date().toLocaleDateString()}`,
+          title: input.title || `Chat ${new Date().toLocaleDateString('en-US')}`,
           userId: ctx.auth.userId!,
         },
       })
