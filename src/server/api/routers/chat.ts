@@ -565,4 +565,89 @@ export const chatRouter = createTRPCRouter({
         throw new Error('❌ Failed to sync message to database.')
       }
     }),
+
+  getSharedChat: publicProcedure.input(z.object({ chatId: z.string() })).query(async ({ ctx, input }) => {
+    const chat = await ctx.db.chat.findUnique({
+      where: { id: input.chatId },
+      include: { user: { select: { id: true, email: true } } },
+    })
+
+    if (!chat) {
+      throw new Error('Chat not found.')
+    }
+
+    if (!chat.isShared) {
+      throw new Error('Chat is not shared.')
+    }
+
+    const { clerkClient } = await import('@clerk/nextjs/server')
+    let ownerName = 'Unknown User'
+
+    try {
+      const client = await clerkClient()
+      const clerkUser = await client.users.getUser(chat.userId)
+      ownerName =
+        clerkUser.fullName || clerkUser.firstName || clerkUser.emailAddresses[0]?.emailAddress || 'Unknown User'
+    } catch (error) {
+      console.error('Failed to fetch user from Clerk:', error)
+    }
+
+    return {
+      id: chat.id,
+      title: chat.title,
+      isPinned: chat.isPinned,
+      isShared: chat.isShared,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt,
+      userId: chat.userId,
+      ownerEmail: chat.user.email,
+      ownerName,
+    }
+  }),
+
+  getSharedChatMessages: publicProcedure.input(z.object({ chatId: z.string() })).query(async ({ ctx, input }) => {
+    const chat = await ctx.db.chat.findUnique({
+      where: { id: input.chatId },
+    })
+
+    if (!chat) {
+      throw new Error('Chat not found.')
+    }
+
+    if (!chat.isShared) {
+      throw new Error('Chat is not shared.')
+    }
+
+    const messages = await ctx.db.message.findMany({
+      where: { chatId: input.chatId },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    return messages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      modelId: message.modelId,
+      createdAt: message.createdAt,
+      userId: message.userId,
+      chatId: message.chatId,
+    }))
+  }),
+
+  // Check if current user is the owner of a chat
+  isOwnerOfChat: publicProcedure.input(z.object({ chatId: z.string() })).query(async ({ ctx, input }) => {
+    const chat = await ctx.db.chat.findUnique({
+      where: { id: input.chatId },
+    })
+
+    if (!chat) {
+      throw new Error('Chat not found.')
+    }
+
+    if (!ctx.auth.userId) {
+      return { isOwner: false }
+    }
+
+    return { isOwner: chat.userId === ctx.auth.userId }
+  }),
 })

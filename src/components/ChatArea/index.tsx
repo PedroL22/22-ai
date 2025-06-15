@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 
-import { ArrowDown, ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, Share2 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
@@ -44,6 +44,26 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     renameChat,
   } = useChatStore()
 
+  // Get current chat to check if it's shared
+  const currentChat = chatId ? chats.find((chat) => chat.id === chatId) : null
+
+  // Check if current user is the owner of this chat
+  const { data: ownershipData } = api.chat.isOwnerOfChat.useQuery({ chatId: chatId! }, { enabled: !!chatId })
+
+  // For shared chats, get the chat data and messages from public endpoints
+  const { data: sharedChatData } = api.chat.getSharedChat.useQuery(
+    { chatId: chatId! },
+    { enabled: !!chatId && (!currentChat || currentChat.isShared) }
+  )
+
+  const { data: sharedMessages } = api.chat.getSharedChatMessages.useQuery(
+    { chatId: chatId! },
+    { enabled: !!chatId && (!currentChat || currentChat.isShared) }
+  )
+
+  const isOwner = ownershipData?.isOwner ?? false
+  const isSharedChat = currentChat?.isShared || sharedChatData?.isShared || false
+
   const generateTitleMutation = api.chat.generateChatTitle.useMutation()
   const { syncChat, syncMessage } = useRealtimeSync()
 
@@ -55,20 +75,25 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   // Load messages when chatId changes or component mounts
   useEffect(() => {
     if (chatId) {
-      const storedMessages = getMessages(chatId)
-      setMessages(storedMessages)
+      // For shared chats, use shared messages if available, otherwise use local messages
+      if (isSharedChat && sharedMessages) {
+        setMessages(sharedMessages)
+      } else {
+        const storedMessages = getMessages(chatId)
+        setMessages(storedMessages)
+      }
     } else {
       setMessages([])
     }
-  }, [chatId, getMessages])
+  }, [chatId, getMessages, isSharedChat, sharedMessages])
 
-  // Sync local state with store when messages change
+  // Sync local state with store when messages change (only for owned chats)
   useEffect(() => {
-    if (chatId) {
+    if (chatId && !isSharedChat) {
       const storedMessages = getMessages(chatId)
       setMessages(storedMessages)
     }
-  }, [chats, chatId, getMessages])
+  }, [chats, chatId, getMessages, isSharedChat])
 
   useEffect(() => {
     if (!isStreaming && message === '' && messages.length > 0) {
@@ -114,6 +139,12 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   }
   const handleSendMessage = async () => {
     if (!message.trim() || isStreaming) return
+
+    // Only allow message sending if user is the owner or it's not a shared chat
+    if (isSharedChat && !isOwner) {
+      console.warn('Cannot send messages to shared chats that you do not own')
+      return
+    }
 
     const userMessage = message.trim()
     setMessage('')
@@ -278,6 +309,18 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
   return (
     <div className='relative flex w-full flex-col items-center bg-accent px-6 md:px-20'>
+      {/* Shared indicator */}
+      {isSharedChat && (
+        <div className='absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 font-medium text-primary text-xs backdrop-blur-sm'>
+          <Share2 className='size-3' />
+          <span>Shared</span>
+
+          {sharedChatData?.ownerName && (
+            <span className='text-primary/70'>by {isOwner ? 'you' : sharedChatData.ownerName}</span>
+          )}
+        </div>
+      )}
+
       <div
         ref={chatContainerRef}
         className='scrollbar-hide w-full flex-1 space-y-3 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-16 [@supports(-moz-appearance:none)]:py-22'
@@ -367,9 +410,11 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         <div className='relative flex w-full items-center space-x-2'>
           <Textarea
             id='chat-message-input'
-            placeholder='Type your message here...'
-            title='Type your message here...'
-            disabled={isStreaming}
+            placeholder={
+              isSharedChat && !isOwner ? 'Only the chat owner can send messages' : 'Type your message here...'
+            }
+            title={isSharedChat && !isOwner ? 'Only the chat owner can send messages' : 'Type your message here...'}
+            disabled={isStreaming || (isSharedChat && !isOwner)}
             value={message}
             className='scrollbar-hide min-h-9 resize-none whitespace-nowrap rounded-t-xl border-none bg-transparent text-sm shadow-none placeholder:select-none placeholder:text-sm focus-visible:ring-0 md:text-base md:placeholder:text-base dark:bg-transparent'
             onChange={(e) => setMessage(e.target.value)}
@@ -390,7 +435,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             title='Send'
             variant='default'
             size='icon'
-            disabled={isStreaming || !message.trim()}
+            disabled={isStreaming || !message.trim() || (isSharedChat && !isOwner)}
             isLoading={isStreaming}
             onClick={handleSendMessage}
           >
