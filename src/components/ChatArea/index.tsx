@@ -19,6 +19,7 @@ import { createStreamingChatCompletion } from '~/lib/streaming'
 import { useRealtimeSync } from '~/lib/useRealtimeSync'
 
 import type { Chat as ChatType, Message as MessageType } from '@prisma/client'
+import type { ModelsIds } from '~/types/models'
 
 type ChatAreaProps = {
   chatId?: string
@@ -41,6 +42,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     setIsStreaming,
     renameChat,
     selectedModelId,
+    removeMessagesFromIndex,
   } = useChatStore()
 
   // Get current chat to check if it's shared
@@ -64,7 +66,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const isSharedChat = currentChat?.isShared || sharedChatData?.isShared || false
 
   const generateTitleMutation = api.chat.generateChatTitle.useMutation()
-  const { syncChat, syncMessage } = useRealtimeSync()
+  const { syncChat, syncMessage, deleteMessagesFromIndex } = useRealtimeSync()
 
   const router = useRouter()
 
@@ -283,6 +285,138 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     setUserScrolledUp(false) // Reset scroll tracking when manually scrolling to bottom
   }
 
+  const handleRetry = async (messageIndex: number, modelId?: ModelsIds) => {
+    if (isStreaming || !chatId) return
+
+    const targetMessage = messages[messageIndex]
+    if (!targetMessage) return
+
+    if (isSharedChat && !isOwner) {
+      console.warn('Cannot retry messages in shared chats that you do not own')
+      return
+    }
+
+    const retryModelId = modelId || (targetMessage.modelId as ModelsIds) || selectedModelId // If retrying a user message, we need to regenerate the assistant response
+
+    // If retrying an assistant message, we just regenerate that message
+    if (targetMessage.role === 'user') {
+      // Find the next assistant message (if any) and remove everything from that point
+      const nextAssistantIndex = messages.findIndex((msg, idx) => idx > messageIndex && msg.role === 'assistant')
+      if (nextAssistantIndex !== -1) {
+        removeMessagesFromIndex(chatId, nextAssistantIndex)
+        deleteMessagesFromIndex(chatId, nextAssistantIndex) // Also delete from database
+        setMessages(getMessages(chatId))
+      }
+
+      // Get all messages up to and including the user message for context
+      const contextMessages = messages.slice(0, messageIndex + 1).map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }))
+
+      setIsStreaming(true)
+      setStreamingMessage('')
+
+      await createStreamingChatCompletion(
+        contextMessages,
+        retryModelId,
+        (chunk) => {
+          if (chunk.type === 'chunk' && chunk.content) {
+            setStreamingMessage((prev) => prev + chunk.content)
+          }
+        },
+        async (fullMessage) => {
+          const assistantMessage: MessageType = {
+            id: uuid(),
+            role: 'assistant',
+            content: fullMessage,
+            createdAt: new Date(),
+            userId: '',
+            chatId: chatId,
+            modelId: retryModelId,
+          }
+
+          addMessage(chatId, assistantMessage)
+          syncMessage(assistantMessage)
+
+          const currentChat = chats.find((chat) => chat.id === chatId)
+          if (currentChat) {
+            const updatedChat = {
+              ...currentChat,
+              updatedAt: new Date(),
+            }
+            syncChat(updatedChat)
+          }
+
+          setMessages(getMessages(chatId))
+          setStreamingMessage('')
+          setIsStreaming(false)
+        },
+        (error) => {
+          console.error('❌ Retry streaming error: ', error)
+          setStreamingMessage('')
+          setIsStreaming(false)
+        }
+      )
+    } else if (targetMessage.role === 'assistant') {
+      // Remove all messages from the assistant message index onwards
+      removeMessagesFromIndex(chatId, messageIndex)
+      deleteMessagesFromIndex(chatId, messageIndex) // Also delete from database
+      setMessages(getMessages(chatId))
+
+      // Get all messages up to (but not including) the assistant message for context
+      const contextMessages = messages.slice(0, messageIndex).map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }))
+
+      setIsStreaming(true)
+      setStreamingMessage('')
+
+      await createStreamingChatCompletion(
+        contextMessages,
+        retryModelId,
+        (chunk) => {
+          if (chunk.type === 'chunk' && chunk.content) {
+            setStreamingMessage((prev) => prev + chunk.content)
+          }
+        },
+        async (fullMessage) => {
+          const assistantMessage: MessageType = {
+            id: uuid(),
+            role: 'assistant',
+            content: fullMessage,
+            createdAt: new Date(),
+            userId: '',
+            chatId: chatId,
+            modelId: retryModelId,
+          }
+
+          addMessage(chatId, assistantMessage)
+          syncMessage(assistantMessage)
+
+          const currentChat = chats.find((chat) => chat.id === chatId)
+          if (currentChat) {
+            const updatedChat = {
+              ...currentChat,
+              updatedAt: new Date(),
+            }
+            syncChat(updatedChat)
+          }
+
+          setMessages(getMessages(chatId))
+          setStreamingMessage('')
+          setIsStreaming(false)
+        },
+        (error) => {
+          console.error('❌ Retry streaming error: ', error)
+          setStreamingMessage('')
+          setIsStreaming(false)
+        }
+      )
+    }
+  }
+
   return (
     <div className='relative flex w-full flex-col items-center bg-accent px-6 sm:px-20'>
       {/* Shared indicator */}
@@ -317,7 +451,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                 layout='position'
                 className='flex flex-col'
               >
-                <Message message={msg} />
+                <Message message={msg} messageIndex={index} onRetry={handleRetry} />
               </motion.div>
             ))}
 
@@ -329,6 +463,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                 layout='position'
                 className='flex flex-col'
               >
+                {' '}
                 <Message
                   message={{
                     role: 'assistant',
@@ -336,6 +471,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                     createdAt: new Date(),
                     modelId: selectedModelId,
                   }}
+                  messageIndex={messages.length}
+                  onRetry={handleRetry}
                 />
               </motion.div>
             )}

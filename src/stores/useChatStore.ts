@@ -30,6 +30,8 @@ type ChatStore = {
   addMessage: (chatId: string, message: MessageType) => void
   getMessages: (chatId: string) => MessageType[]
   clearMessages: (chatId: string) => void
+  replaceMessage: (chatId: string, messageIndex: number, newMessage: MessageType) => void
+  removeMessagesFromIndex: (chatId: string, messageIndex: number) => void
   syncChatsFromDatabase: (chats: ChatWithMessages[]) => void
   moveDbChatsToLocal: (chats: ChatWithMessages[]) => void
   getLocalChatsForSync: () => ChatWithMessages[]
@@ -103,6 +105,30 @@ export const useChatStore = create<ChatStore>()(
       clearMessages: (chatId) =>
         set((state) => ({
           chats: state.chats.map((chat) => (chat.id === chatId ? { ...chat, messages: [] } : chat)),
+        })),
+      replaceMessage: (chatId, messageIndex, newMessage) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId
+              ? {
+                  ...chat,
+                  messages: chat.messages.map((msg, index) => (index === messageIndex ? newMessage : msg)),
+                  updatedAt: new Date(),
+                }
+              : chat
+          ),
+        })),
+      removeMessagesFromIndex: (chatId, messageIndex) =>
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === chatId
+              ? {
+                  ...chat,
+                  messages: chat.messages.slice(0, messageIndex),
+                  updatedAt: new Date(),
+                }
+              : chat
+          ),
         })),
       syncChatsFromDatabase: (chats) => set({ chats, chatsDisplayMode: 'synced' }),
       moveDbChatsToLocal: (chats) => set({ chats, chatsDisplayMode: 'local' }),

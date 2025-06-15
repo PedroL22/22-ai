@@ -606,4 +606,56 @@ export const chatRouter = createTRPCRouter({
 
     return { isOwner: chat.userId === ctx.auth.userId }
   }),
+
+  deleteMessagesFromIndex: protectedProcedure
+    .input(
+      z.object({
+        chatId: z.string(),
+        messageIndex: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // First check if user owns the chat
+        const chat = await ctx.db.chat.findUnique({
+          where: { id: input.chatId },
+        })
+
+        if (!chat) {
+          throw new Error('Chat not found.')
+        }
+
+        if (chat.userId !== ctx.auth.userId!) {
+          throw new Error('You do not have permission to delete messages from this chat.')
+        }
+
+        // Get all messages for this chat ordered by creation time
+        const messages = await ctx.db.message.findMany({
+          where: { chatId: input.chatId },
+          orderBy: { createdAt: 'asc' },
+        })
+
+        // Find messages to delete (from messageIndex onwards)
+        const messagesToDelete = messages.slice(input.messageIndex)
+
+        // Delete messages from database
+        if (messagesToDelete.length > 0) {
+          await ctx.db.message.deleteMany({
+            where: {
+              id: {
+                in: messagesToDelete.map((msg) => msg.id),
+              },
+            },
+          })
+        }
+
+        return {
+          success: true,
+          deletedCount: messagesToDelete.length,
+        }
+      } catch (error) {
+        console.error('❌ Error deleting messages from database: ', error)
+        throw new Error('❌ Failed to delete messages from database.')
+      }
+    }),
 })

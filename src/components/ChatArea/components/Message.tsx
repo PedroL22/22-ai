@@ -39,10 +39,18 @@ const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl px-4
 
 type MessageProps = {
   message: Omit<MessageType, 'id' | 'userId' | 'chatId'>
+  messageIndex: number
+  onRetry?: (messageIndex: number, modelId?: ModelsIds) => void
 }
 
-export const Message = ({ message }: MessageProps) => {
+export const Message = ({ message, messageIndex, onRetry }: MessageProps) => {
   const [isCopied, setIsCopied] = useState(false)
+
+  const handleRetry = (modelId?: ModelsIds) => {
+    if (onRetry) {
+      onRetry(messageIndex, modelId)
+    }
+  }
 
   const developerIcon = (developer: ModelsDevelopers) => {
     switch (developer) {
@@ -82,13 +90,17 @@ export const Message = ({ message }: MessageProps) => {
               title='Retry message'
               data-role={message.role}
               className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+              onClick={() => onRetry?.(messageIndex, message.modelId as ModelsIds)}
             >
               <RefreshCcw className='size-4' />
             </Button>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent side='top'>
-            <DropdownMenuItem className='flex items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'>
+            <DropdownMenuItem
+              className='flex cursor-pointer items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'
+              onClick={() => handleRetry()}
+            >
               <RefreshCcw className='size-3' /> <span className='font-medium'>Retry same</span>
             </DropdownMenuItem>
 
@@ -97,7 +109,8 @@ export const Message = ({ message }: MessageProps) => {
             {MODELS.map((model) => (
               <DropdownMenuItem
                 key={model.id}
-                className='flex items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
+                className='flex cursor-pointer items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
+                onClick={() => handleRetry(model.id)}
               >
                 <div className='flex items-center space-x-2'>
                   {developerIcon(model.developer)}

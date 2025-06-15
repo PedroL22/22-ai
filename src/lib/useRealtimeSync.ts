@@ -28,6 +28,12 @@ export const useRealtimeSync = () => {
     },
   })
 
+  const deleteMessagesFromIndexMutation = api.chat.deleteMessagesFromIndex.useMutation({
+    onError: (error) => {
+      console.error('❌ Failed to delete messages from database:', error)
+    },
+  })
+
   const shouldSync = isSignedIn && settings?.syncWithDb
 
   const syncChat = useCallback(
@@ -74,11 +80,30 @@ export const useRealtimeSync = () => {
     [shouldSync, syncMessageMutation]
   )
 
+  const deleteMessagesFromIndex = useCallback(
+    async (chatId: string, messageIndex: number) => {
+      if (!shouldSync) return
+
+      try {
+        await deleteMessagesFromIndexMutation.mutateAsync({
+          chatId,
+          messageIndex,
+        })
+        console.log('✅ Messages deleted from database from index: ', messageIndex)
+      } catch (error) {
+        console.error('❌ Error deleting messages from database: ', error)
+      }
+    },
+    [shouldSync, deleteMessagesFromIndexMutation]
+  )
+
   return {
     syncChat,
     syncMessage,
+    deleteMessagesFromIndex,
     shouldSync,
     isSyncingChat: syncChatMutation.isPending,
     isSyncingMessage: syncMessageMutation.isPending,
+    isDeletingMessages: deleteMessagesFromIndexMutation.isPending,
   }
 }
