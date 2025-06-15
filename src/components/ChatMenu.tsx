@@ -152,6 +152,7 @@ export const ChatMenu = ({
       })
 
       setShowDeleteDialog(false)
+      push('/')
     } catch (error) {
       console.error('❌ Failed to delete chat: ', error)
       setShowDeleteDialog(false)

@@ -412,7 +412,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             isLoading={isStreaming}
             onClick={handleSendMessage}
           >
-            <ArrowUp />
+            <ArrowUp className='size-4' />
           </Button>
         </div>
 
