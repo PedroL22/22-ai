@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Moon,
   PanelLeft,
+  Pin,
   Settings,
   Sun,
   User,
@@ -31,15 +32,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { ChatMenu } from './ChatMenu'
 import { SettingsPanel } from './SettingsPanel'
 
 import { useChatStore } from '~/stores/useChatStore'
 import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
-import { getGroupLabel, groupChatsByTime } from '~/utils/group-chats-by-time'
+import { getGroupLabel, groupChats } from '~/utils/group-chats'
 import { isMobile } from '~/utils/is-mobile'
-import { ChatMenu } from './ChatMenu'
 
 type SidebarProps = {
   selectedChatId?: string | null
@@ -76,7 +77,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     return dateB - dateA
   })
 
-  const groupedChats = groupChatsByTime(sortedChats)
+  const groupedChats = groupChats(sortedChats)
 
   const { theme, setTheme, resolvedTheme } = useTheme()
 
@@ -283,9 +284,16 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                         if (group.length === 0) return null
 
                         return (
-                          <div key={groupKey} className='space-y-1 pt-2'>
+                          <div key={groupKey} className='space-y-1 pt-1'>
                             <h3 className='px-3 font-medium text-muted-foreground/60 text-xs tracking-wider'>
-                              {getGroupLabel(groupKey)}
+                              {groupKey === 'pinned' ? (
+                                <div className='flex items-center gap-1'>
+                                  <Pin className='size-3' />
+                                  <span>{getGroupLabel(groupKey)}</span>
+                                </div>
+                              ) : (
+                                getGroupLabel(groupKey)
+                              )}
                             </h3>
 
                             <div className='space-y-1'>
