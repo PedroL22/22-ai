@@ -82,7 +82,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               <TRPCReactProvider>
                 <ChatSyncProvider />
                 <Analytics />
-                <Toaster richColors />
+                <Toaster />
                 {children}
               </TRPCReactProvider>
             </main>

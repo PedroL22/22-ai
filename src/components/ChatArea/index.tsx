@@ -323,7 +323,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       <div
         ref={chatContainerRef}
-        className='scrollbar-hide w-full flex-1 space-y-3 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-30 md:[&:not(*:is(@supports(-moz-appearance:none)))]:py-27 [@supports(-moz-appearance:none)]:py-33 md:[@supports(-moz-appearance:none)]:py-32'
+        className='scrollbar-hide w-full flex-1 space-y-8 overflow-y-auto overscroll-contain [&:not(*:is(@supports(-moz-appearance:none)))]:py-36 md:[&:not(*:is(@supports(-moz-appearance:none)))]:py-38 [@supports(-moz-appearance:none)]:py-42 md:[@supports(-moz-appearance:none)]:py-44'
       >
         {messages.length === 0 && !isStreaming ? (
           <div className='flex items-center justify-center pb-4 md:h-full md:pb-0'>
@@ -358,8 +358,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                     role: 'assistant',
                     content: streamingMessage,
                     createdAt: new Date(),
-                    userId: '',
-                    chatId: chatId || '',
                     modelId: selectedModelId,
                   }}
                 />

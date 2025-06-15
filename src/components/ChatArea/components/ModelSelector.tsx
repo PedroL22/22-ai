@@ -44,7 +44,7 @@ export const ModelSelector = () => {
           className='mx-1 justify-between self-start rounded-sm border-0 bg-transparent px-2 py-1 text-muted-foreground text-sm shadow-none transition-all ease-in hover:bg-muted/50 hover:text-muted-foreground'
         >
           <div className='flex items-center gap-2'>
-            <Sparkles className='size-3' />
+            {selectedModel ? developerIcon(selectedModel.developer) : <Sparkles className='size-3' />}
 
             <span className='truncate'>{selectedModel ? selectedModel.name : getModelName(selectedModelId)}</span>
           </div>
