@@ -16,7 +16,7 @@ const messageVariants = cva('flex flex-col gap-1 rounded-2xl px-4 py-3 text-sm',
   variants: {
     variant: {
       user: 'max-w-[70%] self-end bg-primary text-primary-foreground',
-      assistant: 'max-w-[80%] self-start bg-teal-200 dark:bg-teal-900',
+      assistant: 'max-w-[80%] self-start bg-border/80 dark:bg-zinc-700/80',
     },
   },
   defaultVariants: {
