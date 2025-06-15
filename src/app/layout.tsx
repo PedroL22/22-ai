@@ -8,6 +8,7 @@ import '~/styles/globals.css'
 
 import { ChatSyncProvider } from '~/components/ChatSyncProvider'
 import { ThemeProvider } from '~/components/ThemeProvider'
+import { Toaster } from '~/components/ui/sonner'
 
 import { TRPCReactProvider } from '~/trpc/react'
 
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               <TRPCReactProvider>
                 <ChatSyncProvider />
                 <Analytics />
+                <Toaster richColors />
                 {children}
               </TRPCReactProvider>
             </main>

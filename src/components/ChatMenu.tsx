@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { type MouseEvent, useEffect, useRef, useState } from 'react'
 
 import { Edit, MoreHorizontal, Pin, Share, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '~/components/ui/context-menu'
 import {
@@ -41,6 +42,7 @@ export const ChatMenu = ({
   const [newTitle, setNewTitle] = useState(chatTitle || '')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showShareDialog, setShowShareDialog] = useState(false)
+  const [showUnshareDialog, setShowUnshareDialog] = useState(false)
 
   const pinChatMutation = api.chat.pinChat.useMutation()
   const shareChatMutation = api.chat.shareChat.useMutation()
@@ -78,7 +80,11 @@ export const ChatMenu = ({
 
   const handleShare = (e: MouseEvent) => {
     e.stopPropagation()
-    setShowShareDialog(true)
+    if (isShared) {
+      setShowUnshareDialog(true)
+    } else {
+      setShowShareDialog(true)
+    }
   }
 
   const confirmShare = async () => {
@@ -91,11 +97,21 @@ export const ChatMenu = ({
         isShared: newSharedState,
       })
 
-      setShowShareDialog(false)
+      // Copy the chat link to clipboard if sharing
+      if (newSharedState) {
+        navigator.clipboard.writeText(`${window.location.origin}/${chatId}`)
+
+        toast.success('Chat link copied to clipboard!')
+        setShowShareDialog(false)
+      } else {
+        setShowUnshareDialog(false)
+        location.reload()
+      }
     } catch (error) {
       console.error('❌ Failed to share/unshare chat: ', error)
       shareChat(chatId, isShared)
       setShowShareDialog(false)
+      setShowUnshareDialog(false)
     }
   }
 
@@ -299,11 +315,10 @@ export const ChatMenu = ({
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{isShared ? 'Unshare Chat' : 'Share Chat'}</DialogTitle>
+            <DialogTitle>Share Chat</DialogTitle>
             <DialogDescription>
-              {isShared
-                ? `Are you sure you want to make "${chatTitle || 'this chat'}" private? Others will no longer be able to access it.`
-                : `Are you sure you want to share "${chatTitle || 'this chat'}"? Others will be able to view this conversation.`}
+              Are you sure you want to share "{chatTitle || 'this chat'}"? Others will be able to view this
+              conversation.
             </DialogDescription>
           </DialogHeader>
 
@@ -311,7 +326,27 @@ export const ChatMenu = ({
             <Button variant='outline' onClick={() => setShowShareDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmShare}>{isShared ? 'Unshare' : 'Share'}</Button>
+            <Button onClick={confirmShare}>Share</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unshare Confirmation Dialog */}
+      <Dialog open={showUnshareDialog} onOpenChange={setShowUnshareDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unshare Chat</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to make "{chatTitle || 'this chat'}" private? Others will no longer be able to
+              access it.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setShowUnshareDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmShare}>Unshare</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
