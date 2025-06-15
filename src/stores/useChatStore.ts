@@ -66,7 +66,13 @@ export const useChatStore = create<ChatStore>()(
       addMessage: (chatId, message) =>
         set((state) => ({
           chats: state.chats.map((chat) =>
-            chat.id === chatId ? { ...chat, messages: [...chat.messages, message] } : chat
+            chat.id === chatId
+              ? {
+                  ...chat,
+                  messages: [...chat.messages, message],
+                  updatedAt: new Date(), // Update the chat's timestamp when adding messages
+                }
+              : chat
           ),
         })),
       getMessages: (chatId) => {

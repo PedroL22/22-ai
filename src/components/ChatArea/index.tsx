@@ -16,6 +16,7 @@ import { api } from '~/trpc/react'
 
 import { env } from '~/env'
 import { createStreamingChatCompletion } from '~/lib/streaming'
+import { useRealtimeSync } from '~/lib/useRealtimeSync'
 
 import type { Message as MessageType } from '@prisma/client'
 import type { ModelsIds } from '~/types/models'
@@ -44,6 +45,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   } = useChatStore()
 
   const generateTitleMutation = api.chat.generateChatTitle.useMutation()
+  const { syncChat, syncMessage } = useRealtimeSync()
 
   const router = useRouter()
 
@@ -137,20 +139,39 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
         // Add chat to store immediately
         addChat(newChat)
-        setCurrentChatId(currentChatId) // Generate title concurrently using tRPC
+        setCurrentChatId(currentChatId) // Sync the new chat to database immediately
+        syncChat(newChat)
 
+        // Generate title concurrently using tRPC
         generateTitleMutation
           .mutateAsync({ firstMessage: userMessage })
           .then((result) => {
-            if (result.success && result.title) {
-              renameChat(currentChatId!, result.title)
-            } else {
-              renameChat(currentChatId!, 'New chat')
+            const newTitle = result.success && result.title ? result.title : 'New chat'
+            renameChat(currentChatId!, newTitle)
+
+            // Sync the updated chat with the new title
+            const updatedChat = {
+              id: currentChatId!,
+              title: newTitle,
+              createdAt: newChat.createdAt,
+              updatedAt: new Date(),
+              userId: '',
             }
+            syncChat(updatedChat)
           })
           .catch((error) => {
             console.error('❌ Failed to generate title: ', error)
             renameChat(currentChatId!, 'New chat')
+
+            // Sync the chat with fallback title
+            const updatedChat = {
+              id: currentChatId!,
+              title: 'New chat',
+              createdAt: newChat.createdAt,
+              updatedAt: new Date(),
+              userId: '',
+            }
+            syncChat(updatedChat)
           })
       }
 
@@ -166,7 +187,22 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       }
 
       setMessages((prev) => [...prev, tempUserMessage])
-      addMessage(currentChatId, tempUserMessage) // Get all messages for context
+      addMessage(currentChatId, tempUserMessage)
+
+      // Sync the user message to database
+      syncMessage(tempUserMessage)
+
+      // Update and sync chat timestamp after adding message
+      const currentChat = chats.find((chat) => chat.id === currentChatId)
+      if (currentChat) {
+        const updatedChat = {
+          ...currentChat,
+          updatedAt: new Date(),
+        }
+        syncChat(updatedChat)
+      }
+
+      // Get all messages for context
 
       const allMessages = [...messages, tempUserMessage].map((msg) => ({
         role: msg.role as 'user' | 'assistant',
@@ -196,10 +232,21 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             userId: '',
             chatId: currentChatId!,
             modelId: env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds,
-          }
-
-          // Add to store first
+          } // Add to store first
           addMessage(currentChatId!, assistantMessage)
+
+          // Sync the assistant message to database
+          syncMessage(assistantMessage)
+
+          // Update and sync chat timestamp after adding assistant message
+          const currentChat = chats.find((chat) => chat.id === currentChatId)
+          if (currentChat) {
+            const updatedChat = {
+              ...currentChat,
+              updatedAt: new Date(),
+            }
+            syncChat(updatedChat)
+          }
 
           // Then update local state from store to ensure consistency
           setMessages(getMessages(currentChatId!))

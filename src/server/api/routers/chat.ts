@@ -446,4 +446,77 @@ export const chatRouter = createTRPCRouter({
       message: 'All user chats deleted from database',
     }
   }),
+
+  syncChatToDatabase: protectedProcedure
+    .input(
+      z.object({
+        chat: z.object({
+          id: z.string(),
+          title: z.string(),
+          createdAt: z.date(),
+          updatedAt: z.date(),
+        }),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const chat = await ctx.db.chat.upsert({
+          where: { id: input.chat.id },
+          update: {
+            title: input.chat.title,
+            updatedAt: input.chat.updatedAt,
+          },
+          create: {
+            id: input.chat.id,
+            title: input.chat.title,
+            createdAt: input.chat.createdAt,
+            updatedAt: input.chat.updatedAt,
+            userId: ctx.auth.userId!,
+          },
+        })
+
+        return { success: true, chat }
+      } catch (error) {
+        console.error('❌ Error syncing chat to database: ', error)
+        throw new Error('❌ Failed to sync chat to database.')
+      }
+    }),
+
+  syncMessageToDatabase: protectedProcedure
+    .input(
+      z.object({
+        message: z.object({
+          id: z.string(),
+          role: z.enum(['user', 'assistant']),
+          content: z.string(),
+          modelId: z.string().nullable(),
+          createdAt: z.date(),
+          chatId: z.string(),
+        }),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const message = await ctx.db.message.upsert({
+          where: { id: input.message.id },
+          update: {
+            content: input.message.content,
+          },
+          create: {
+            id: input.message.id,
+            role: input.message.role,
+            content: input.message.content,
+            modelId: input.message.modelId,
+            createdAt: input.message.createdAt,
+            chatId: input.message.chatId,
+            userId: ctx.auth.userId!,
+          },
+        })
+
+        return { success: true, message }
+      } catch (error) {
+        console.error('❌ Error syncing message to database: ', error)
+        throw new Error('❌ Failed to sync message to database.')
+      }
+    }),
 })
