@@ -6,6 +6,14 @@ import { type MouseEvent, useEffect, useRef, useState } from 'react'
 import { Edit, MoreHorizontal, Pin, Share, Trash2 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '~/components/ui/context-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '~/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 
 import { useChatStore } from '~/stores/useChatStore'
@@ -31,6 +39,8 @@ export const ChatMenu = ({
   const { removeChat, pinChat, shareChat, renameChat } = useChatStore()
   const [isRenaming, setIsRenaming] = useState(false)
   const [newTitle, setNewTitle] = useState(chatTitle || '')
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
 
   const pinChatMutation = api.chat.pinChat.useMutation()
   const shareChatMutation = api.chat.shareChat.useMutation()
@@ -66,9 +76,12 @@ export const ChatMenu = ({
     }
   }
 
-  const handleShare = async (e: MouseEvent) => {
+  const handleShare = (e: MouseEvent) => {
     e.stopPropagation()
+    setShowShareDialog(true)
+  }
 
+  const confirmShare = async () => {
     try {
       const newSharedState = !isShared
       shareChat(chatId, newSharedState)
@@ -77,9 +90,12 @@ export const ChatMenu = ({
         chatId,
         isShared: newSharedState,
       })
+
+      setShowShareDialog(false)
     } catch (error) {
       console.error('❌ Failed to share/unshare chat: ', error)
       shareChat(chatId, isShared)
+      setShowShareDialog(false)
     }
   }
 
@@ -106,17 +122,23 @@ export const ChatMenu = ({
     }
   }
 
-  const handleDelete = async (e: MouseEvent) => {
+  const handleDelete = (e: MouseEvent) => {
     e.stopPropagation()
+    setShowDeleteDialog(true)
+  }
 
+  const confirmDelete = async () => {
     try {
       removeChat(chatId)
 
       await deleteChatMutation.mutateAsync({
         chatId,
       })
+
+      setShowDeleteDialog(false)
     } catch (error) {
       console.error('❌ Failed to delete chat: ', error)
+      setShowDeleteDialog(false)
     }
   }
 
@@ -178,76 +200,121 @@ export const ChatMenu = ({
   }
 
   return (
-    <div
-      aria-label={`Chat: ${chatTitle || 'Untitled'}`}
-      className={cn(
-        'group flex w-full cursor-pointer items-center justify-end gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent',
-        {
-          'bg-accent dark:bg-accent/35': isSelected,
-        }
-      )}
-      onClick={handleChatClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          handleChatClick()
-        }
-      }}
-    >
-      <div className='flex w-full items-center justify-between'>
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <div className='flex-1 cursor-pointer'>
-              <span className='truncate text-muted-foreground text-sm'>{chatTitle || ''}</span>
-            </div>
-          </ContextMenuTrigger>
+    <>
+      <div
+        aria-label={`Chat: ${chatTitle || 'Untitled'}`}
+        className={cn(
+          'group flex w-full cursor-pointer items-center justify-end gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent',
+          {
+            'bg-accent dark:bg-accent/35': isSelected,
+          }
+        )}
+        onClick={handleChatClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleChatClick()
+          }
+        }}
+      >
+        <div className='flex w-full items-center justify-between'>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div className='flex-1 cursor-pointer'>
+                <span className='truncate text-muted-foreground text-sm'>{chatTitle || ''}</span>
+              </div>
+            </ContextMenuTrigger>
 
-          <ContextMenuContent>
-            <MenuItems />
-          </ContextMenuContent>
-        </ContextMenu>
+            <ContextMenuContent>
+              <MenuItems />
+            </ContextMenuContent>
+          </ContextMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='size-6 shrink-0 opacity-0 hover:bg-accent/50 group-hover:opacity-100'
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-            >
-              <MoreHorizontal className='size-4' />
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='size-6 shrink-0 opacity-0 hover:bg-accent/50 group-hover:opacity-100'
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+              >
+                <MoreHorizontal className='size-4' />
+              </Button>
+            </DropdownMenuTrigger>
 
-          <DropdownMenuContent align='end'>
-            <DropdownMenuItem className='flex items-center gap-2' onClick={handlePin}>
-              <Pin className='size-4' />
-              {isPinned ? 'Unpin chat' : 'Pin chat'}
-            </DropdownMenuItem>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuItem className='flex items-center gap-2' onClick={handlePin}>
+                <Pin className='size-4' />
+                {isPinned ? 'Unpin chat' : 'Pin chat'}
+              </DropdownMenuItem>
 
-            <DropdownMenuItem className='flex items-center gap-2' onClick={handleShare}>
-              <Share className='size-4' />
-              {isShared ? 'Unshare chat' : 'Share chat'}
-            </DropdownMenuItem>
+              <DropdownMenuItem className='flex items-center gap-2' onClick={handleShare}>
+                <Share className='size-4' />
+                {isShared ? 'Unshare chat' : 'Share chat'}
+              </DropdownMenuItem>
 
-            <DropdownMenuItem className='flex items-center gap-2' onClick={handleRename}>
-              <Edit className='size-4' />
-              Rename
-            </DropdownMenuItem>
+              <DropdownMenuItem className='flex items-center gap-2' onClick={handleRename}>
+                <Edit className='size-4' />
+                Rename
+              </DropdownMenuItem>
 
-            <DropdownMenuItem
-              className='flex items-center gap-2 text-destructive focus:text-destructive'
-              onClick={handleDelete}
-            >
-              <Trash2 className='size-4' />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem
+                className='flex items-center gap-2 text-destructive focus:text-destructive'
+                onClick={handleDelete}
+              >
+                <Trash2 className='size-4' />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-    </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Chat</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{chatTitle || 'this chat'}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+
+            <Button variant='destructive' onClick={confirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Confirmation Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isShared ? 'Unshare Chat' : 'Share Chat'}</DialogTitle>
+            <DialogDescription>
+              {isShared
+                ? `Are you sure you want to make "${chatTitle || 'this chat'}" private? Others will no longer be able to access it.`
+                : `Are you sure you want to share "${chatTitle || 'this chat'}"? Others will be able to view this conversation.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setShowShareDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmShare}>{isShared ? 'Unshare' : 'Share'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
