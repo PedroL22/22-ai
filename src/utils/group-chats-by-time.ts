@@ -2,6 +2,8 @@ type ChatItem = {
   id: string
   title: string | null
   updatedAt: Date | string
+  isPinned?: boolean
+  isShared?: boolean
   isLocal?: boolean
 }
 

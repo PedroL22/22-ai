@@ -1,0 +1,253 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { type MouseEvent, useEffect, useRef, useState } from 'react'
+
+import { Edit, MoreHorizontal, Pin, Share, Trash2 } from 'lucide-react'
+import { Button } from '~/components/ui/button'
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '~/components/ui/context-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
+
+import { useChatStore } from '~/stores/useChatStore'
+
+import { cn } from '~/lib/utils'
+import { api } from '~/trpc/react'
+
+type ChatMenuProps = {
+  chatId: string
+  chatTitle: string | null
+  isPinned?: boolean
+  isShared?: boolean
+  isSelected?: boolean
+}
+
+export const ChatMenu = ({
+  chatId,
+  chatTitle,
+  isPinned = false,
+  isShared = false,
+  isSelected = false,
+}: ChatMenuProps) => {
+  const { removeChat, pinChat, shareChat, renameChat } = useChatStore()
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [newTitle, setNewTitle] = useState(chatTitle || '')
+
+  const pinChatMutation = api.chat.pinChat.useMutation()
+  const shareChatMutation = api.chat.shareChat.useMutation()
+  const deleteChatMutation = api.chat.deleteChat.useMutation()
+  const renameChatMutation = api.chat.renameChat.useMutation()
+
+  const { push } = useRouter()
+
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Focus and select all text when entering rename mode
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isRenaming])
+
+  const handlePin = async (e: MouseEvent) => {
+    e.stopPropagation()
+
+    try {
+      const newPinnedState = !isPinned
+      pinChat(chatId, newPinnedState)
+
+      await pinChatMutation.mutateAsync({
+        chatId,
+        isPinned: newPinnedState,
+      })
+    } catch (err) {
+      console.error('❌ Failed to pin/unpin chat: ', err)
+      pinChat(chatId, isPinned)
+    }
+  }
+
+  const handleShare = async (e: MouseEvent) => {
+    e.stopPropagation()
+
+    try {
+      const newSharedState = !isShared
+      shareChat(chatId, newSharedState)
+
+      await shareChatMutation.mutateAsync({
+        chatId,
+        isShared: newSharedState,
+      })
+    } catch (error) {
+      console.error('❌ Failed to share/unshare chat: ', error)
+      shareChat(chatId, isShared)
+    }
+  }
+
+  const handleRename = (e: MouseEvent) => {
+    e.stopPropagation()
+    setIsRenaming(true)
+  }
+
+  const handleRenameSubmit = async () => {
+    if (!newTitle.trim()) return
+
+    try {
+      renameChat(chatId, newTitle.trim())
+
+      await renameChatMutation.mutateAsync({
+        chatId,
+        newTitle: newTitle.trim(),
+      })
+
+      setIsRenaming(false)
+    } catch (error) {
+      console.error('❌ Failed to rename chat: ', error)
+      renameChat(chatId, chatTitle || '')
+    }
+  }
+
+  const handleDelete = async (e: MouseEvent) => {
+    e.stopPropagation()
+
+    try {
+      removeChat(chatId)
+
+      await deleteChatMutation.mutateAsync({
+        chatId,
+      })
+    } catch (error) {
+      console.error('❌ Failed to delete chat: ', error)
+    }
+  }
+
+  const handleChatClick = () => {
+    if (!isRenaming) {
+      push(`/${chatId}`)
+    }
+  }
+
+  const MenuItems = () => (
+    <>
+      <ContextMenuItem className='flex items-center gap-2' onClick={handlePin}>
+        <Pin className='size-4' />
+        {isPinned ? 'Unpin chat' : 'Pin chat'}
+      </ContextMenuItem>
+
+      <ContextMenuItem className='flex items-center gap-2' onClick={handleShare}>
+        <Share className='size-4' />
+        {isShared ? 'Unshare chat' : 'Share chat'}
+      </ContextMenuItem>
+
+      <ContextMenuItem className='flex items-center gap-2' onClick={handleRename}>
+        <Edit className='size-4' />
+        Rename
+      </ContextMenuItem>
+
+      <ContextMenuItem
+        variant='destructive'
+        className='flex items-center gap-2 text-destructive focus:text-destructive'
+        onClick={handleDelete}
+      >
+        <Trash2 className='size-4' />
+        Delete
+      </ContextMenuItem>
+    </>
+  )
+
+  if (isRenaming) {
+    return (
+      <div className='flex w-full items-center gap-2 rounded-lg bg-accent px-3 py-4 dark:bg-accent/35'>
+        <input
+          ref={inputRef}
+          type='text'
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          onBlur={handleRenameSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleRenameSubmit()
+            } else if (e.key === 'Escape') {
+              setIsRenaming(false)
+              setNewTitle(chatTitle || '')
+            }
+          }}
+          className='w-fit flex-1 rounded-xs border-none bg-background text-muted-foreground text-sm outline-none dark:bg-accent'
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      aria-label={`Chat: ${chatTitle || 'Untitled'}`}
+      className={cn(
+        'group flex w-full cursor-pointer items-center justify-end gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent',
+        {
+          'bg-accent dark:bg-accent/35': isSelected,
+        }
+      )}
+      onClick={handleChatClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleChatClick()
+        }
+      }}
+    >
+      <div className='flex w-full items-center justify-between'>
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div className='flex-1 cursor-pointer'>
+              <span className='truncate text-muted-foreground text-sm'>{chatTitle || ''}</span>
+            </div>
+          </ContextMenuTrigger>
+
+          <ContextMenuContent>
+            <MenuItems />
+          </ContextMenuContent>
+        </ContextMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='size-6 shrink-0 opacity-0 hover:bg-accent/50 group-hover:opacity-100'
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            >
+              <MoreHorizontal className='size-4' />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem className='flex items-center gap-2' onClick={handlePin}>
+              <Pin className='size-4' />
+              {isPinned ? 'Unpin chat' : 'Pin chat'}
+            </DropdownMenuItem>
+
+            <DropdownMenuItem className='flex items-center gap-2' onClick={handleShare}>
+              <Share className='size-4' />
+              {isShared ? 'Unshare chat' : 'Share chat'}
+            </DropdownMenuItem>
+
+            <DropdownMenuItem className='flex items-center gap-2' onClick={handleRename}>
+              <Edit className='size-4' />
+              Rename
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              className='flex items-center gap-2 text-destructive focus:text-destructive'
+              onClick={handleDelete}
+            >
+              <Trash2 className='size-4' />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  )
+}

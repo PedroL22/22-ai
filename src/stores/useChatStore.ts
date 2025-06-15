@@ -19,6 +19,8 @@ type ChatStore = {
   addChat: (chat: ChatType) => void
   renameChat: (id: string, newTitle: string) => void
   removeChat: (id: string) => void
+  pinChat: (id: string, isPinned: boolean) => void
+  shareChat: (id: string, isShared: boolean) => void
   clearChats: () => void
   addMessage: (chatId: string, message: MessageType) => void
   getMessages: (chatId: string) => MessageType[]
@@ -62,6 +64,18 @@ export const useChatStore = create<ChatStore>()(
         set((state) => ({
           chats: state.chats.filter((chat) => chat.id !== id),
         })),
+      pinChat: (id, isPinned) => {
+        set((state) => {
+          const updatedChats = state.chats.map((chat) => (chat.id === id ? { ...chat, isPinned } : chat))
+          return { chats: updatedChats }
+        })
+      },
+      shareChat: (id, isShared) => {
+        set((state) => {
+          const updatedChats = state.chats.map((chat) => (chat.id === id ? { ...chat, isShared } : chat))
+          return { chats: updatedChats }
+        })
+      },
       clearChats: () => set({ chats: [] }),
       addMessage: (chatId, message) =>
         set((state) => ({

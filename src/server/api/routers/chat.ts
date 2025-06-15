@@ -223,6 +223,48 @@ export const chatRouter = createTRPCRouter({
     }
   }),
 
+  pinChat: protectedProcedure
+    .input(z.object({ chatId: z.string(), isPinned: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+
+      if (!chat) {
+        throw new Error('Chat not found.')
+      }
+
+      await ctx.db.chat.update({
+        where: { id: input.chatId },
+        data: { isPinned: input.isPinned },
+      })
+
+      return {
+        success: true,
+        chatId: input.chatId,
+        isPinned: input.isPinned,
+      }
+    }),
+
+  shareChat: protectedProcedure
+    .input(z.object({ chatId: z.string(), isShared: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const chat = await ctx.db.chat.findUnique({ where: { id: input.chatId } })
+
+      if (!chat) {
+        throw new Error('Chat not found.')
+      }
+
+      await ctx.db.chat.update({
+        where: { id: input.chatId },
+        data: { isShared: input.isShared },
+      })
+
+      return {
+        success: true,
+        chatId: input.chatId,
+        isShared: input.isShared,
+      }
+    }),
+
   getUserChats: protectedProcedure.query(async ({ ctx }) => {
     const ensureUserExists = await ctx.db.user.findUnique({ where: { id: ctx.auth.userId! } })
 
@@ -238,6 +280,8 @@ export const chatRouter = createTRPCRouter({
     return userChats.map((chat) => ({
       id: chat.id,
       title: chat.title,
+      isPinned: chat.isPinned,
+      isShared: chat.isShared,
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
       userId: chat.userId,
@@ -414,6 +458,8 @@ export const chatRouter = createTRPCRouter({
     return userChatsWithMessages.map((chat) => ({
       id: chat.id,
       title: chat.title,
+      isPinned: chat.isPinned,
+      isShared: chat.isShared,
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
       userId: chat.userId,

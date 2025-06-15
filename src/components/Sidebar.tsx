@@ -37,9 +37,9 @@ import { useChatStore } from '~/stores/useChatStore'
 import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
-import { formatMessageDateForChatList } from '~/utils/format-date-for-chat-list'
 import { getGroupLabel, groupChatsByTime } from '~/utils/group-chats-by-time'
 import { isMobile } from '~/utils/is-mobile'
+import { ChatMenu } from './ChatMenu'
 
 type SidebarProps = {
   selectedChatId?: string | null
@@ -290,21 +290,14 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
                             <div className='space-y-1'>
                               {group.map((chat) => (
-                                <Link
+                                <ChatMenu
                                   key={chat.id}
-                                  href={`/${chat.id}`}
-                                  data-selected={chat.id === selectedChatId}
-                                  className='flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 py-4 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
-                                >
-                                  <div className='flex w-full flex-col'>
-                                    <div className='flex w-full items-center justify-between'>
-                                      <span className='truncate text-muted-foreground text-sm'>{chat.title || ''}</span>
-                                      <span className='shrink-0 text-muted-foreground text-xs'>
-                                        <span>{formatMessageDateForChatList(chat.updatedAt.toString())}</span>
-                                      </span>
-                                    </div>
-                                  </div>
-                                </Link>
+                                  chatId={chat.id}
+                                  chatTitle={chat.title}
+                                  isPinned={chat.isPinned}
+                                  isShared={chat.isShared}
+                                  isSelected={chat.id === selectedChatId}
+                                />
                               ))}
                             </div>
                           </div>

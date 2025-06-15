@@ -8,7 +8,7 @@ import { ThemeToggle } from '~/components/ThemeToggle'
 import { clerkThemes } from '~/lib/clerk-themes'
 
 export default function SignInPage() {
-  const { theme, setTheme, resolvedTheme } = useTheme()
+  const { resolvedTheme } = useTheme()
 
   return (
     <>

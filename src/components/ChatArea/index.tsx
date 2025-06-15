@@ -18,7 +18,7 @@ import { env } from '~/env'
 import { createStreamingChatCompletion } from '~/lib/streaming'
 import { useRealtimeSync } from '~/lib/useRealtimeSync'
 
-import type { Message as MessageType } from '@prisma/client'
+import type { Chat as ChatType, Message as MessageType } from '@prisma/client'
 import type { ModelsIds } from '~/types/models'
 
 type ChatAreaProps = {
@@ -129,9 +129,11 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         router.push(`/${currentChatId}`)
 
         // Create chat locally in store with empty title initially
-        const newChat = {
+        const newChat: ChatType = {
           id: currentChatId,
           title: '', // Empty string initially, will be updated by title generation
+          isPinned: false,
+          isShared: false,
           createdAt: new Date(),
           updatedAt: new Date(),
           userId: '', // Will be set when saved to DB
@@ -150,9 +152,11 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             renameChat(currentChatId!, newTitle)
 
             // Sync the updated chat with the new title
-            const updatedChat = {
+            const updatedChat: ChatType = {
               id: currentChatId!,
               title: newTitle,
+              isPinned: false,
+              isShared: false,
               createdAt: newChat.createdAt,
               updatedAt: new Date(),
               userId: '',
@@ -164,9 +168,11 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             renameChat(currentChatId!, 'New chat')
 
             // Sync the chat with fallback title
-            const updatedChat = {
+            const updatedChat: ChatType = {
               id: currentChatId!,
               title: 'New chat',
+              isPinned: false,
+              isShared: false,
               createdAt: newChat.createdAt,
               updatedAt: new Date(),
               userId: '',
@@ -329,7 +335,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
               </motion.div>
             )}
           </AnimatePresence>
-        )}{' '}
+        )}
+
         <div ref={messagesEndRef} className='h-1' />
       </div>
 
