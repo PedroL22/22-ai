@@ -19,7 +19,7 @@ declare global {
   }
 }
 
-export function PWAInstallPrompt() {
+export const PWAInstallPrompt = () => {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
   const [isInstalling, setIsInstalling] = useState(false)

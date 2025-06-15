@@ -38,6 +38,7 @@ import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
 import { formatMessageDateForChatList } from '~/utils/format-date-for-chat-list'
+import { getGroupLabel, groupChatsByTime } from '~/utils/group-chats-by-time'
 import { isMobile } from '~/utils/is-mobile'
 
 type SidebarProps = {
@@ -74,6 +75,8 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     const dateB = new Date(b.updatedAt).getTime()
     return dateB - dateA
   })
+
+  const groupedChats = groupChatsByTime(sortedChats)
 
   const { theme, setTheme, resolvedTheme } = useTheme()
 
@@ -274,26 +277,40 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                       <Loader2 className='size-4 animate-spin' />
                     </div>
                   ) : sortedChats.length > 0 ? (
-                    sortedChats.map((chat) => {
-                      return (
-                        <Link
-                          key={chat.id}
-                          href={`/${chat.id}`}
-                          data-selected={chat.id === selectedChatId}
-                          className='flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 py-4 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
-                        >
-                          <div className='flex w-full flex-col'>
-                            <div className='flex w-full items-center justify-between'>
-                              <span className=' truncate text-muted-foreground text-sm'>{chat.title || ''}</span>
+                    <div className='w-full space-y-4'>
+                      {(Object.keys(groupedChats) as Array<keyof typeof groupedChats>).map((groupKey) => {
+                        const group = groupedChats[groupKey]
+                        if (group.length === 0) return null
 
-                              <span className='shrink-0 text-muted-foreground text-xs'>
-                                <span>{formatMessageDateForChatList(chat.updatedAt.toString())}</span>
-                              </span>
+                        return (
+                          <div key={groupKey} className='space-y-1 pt-2'>
+                            <h3 className='px-3 font-medium text-muted-foreground/60 text-xs tracking-wider'>
+                              {getGroupLabel(groupKey)}
+                            </h3>
+
+                            <div className='space-y-1'>
+                              {group.map((chat) => (
+                                <Link
+                                  key={chat.id}
+                                  href={`/${chat.id}`}
+                                  data-selected={chat.id === selectedChatId}
+                                  className='flex w-full cursor-pointer items-center gap-3 rounded-lg p-3 py-4 transition-all ease-in hover:bg-accent data-[selected=true]:bg-accent dark:data-[selected=true]:bg-accent/35 dark:hover:bg-accent/35'
+                                >
+                                  <div className='flex w-full flex-col'>
+                                    <div className='flex w-full items-center justify-between'>
+                                      <span className='truncate text-muted-foreground text-sm'>{chat.title || ''}</span>
+                                      <span className='shrink-0 text-muted-foreground text-xs'>
+                                        <span>{formatMessageDateForChatList(chat.updatedAt.toString())}</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </Link>
+                              ))}
                             </div>
                           </div>
-                        </Link>
-                      )
-                    })
+                        )
+                      })}
+                    </div>
                   ) : (
                     <div className='flex size-full items-center justify-center'>
                       <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>

@@ -8,7 +8,7 @@ import { Switch } from '~/components/ui/switch'
 
 import { useUserSettings } from '~/lib/useUserSettings'
 
-export function SettingsPanel() {
+export const SettingsPanel = () => {
   const { isSignedIn } = useUser()
   const { settings, isLoading, updateSetting, isUpdating } = useUserSettings()
 
