@@ -7,7 +7,7 @@ import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-import { Check, Copy, Info, RefreshCcw, Sparkles } from 'lucide-react'
+import { Check, Copy, Edit, Info, RefreshCcw, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import {
@@ -17,7 +17,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { Textarea } from '~/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+
 import { formatMessageDateForChatHistory } from '~/utils/format-date-for-chat-history'
 import { getModelName } from '~/utils/get-model-name'
 
@@ -40,16 +42,32 @@ const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl px-4
 type MessageProps = {
   message: Omit<MessageType, 'id' | 'userId' | 'chatId'>
   messageIndex: number
+  isStreaming?: boolean
   onRetry?: (messageIndex: number, modelId?: ModelsIds) => void
+  onEdit?: (messageIndex: number, newContent: string) => void
 }
 
-export const Message = ({ message, messageIndex, onRetry }: MessageProps) => {
+export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }: MessageProps) => {
   const [isCopied, setIsCopied] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState(message.content)
 
   const handleRetry = (modelId?: ModelsIds) => {
     if (onRetry) {
       onRetry(messageIndex, modelId)
     }
+  }
+
+  const handleEdit = () => {
+    if (onEdit && editContent.trim() !== message.content) {
+      onEdit(messageIndex, editContent.trim())
+    }
+    setIsEditing(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditContent(message.content)
+    setIsEditing(false)
   }
 
   const developerIcon = (developer: ModelsDevelopers) => {
@@ -65,112 +83,162 @@ export const Message = ({ message, messageIndex, onRetry }: MessageProps) => {
   }
 
   return (
-    <div className={messageVariants({ variant: message.role })}>
-      <div data-role={message.role} className='max-w-none whitespace-pre-wrap break-words data-[role=user]:text-white'>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            a: ({ node, ...props }) => <a {...props} target='_blank' rel='noopener noreferrer' />,
-          }}
-        >
-          {message.content}
-        </ReactMarkdown>
-      </div>
+    <>
+      {isEditing && message.role === 'user' ? (
+        <div className='max-w-[70%] space-y-2 self-end'>
+          <Textarea
+            value={editContent}
+            className='min-h-20 resize-none bg-accent/50'
+            onChange={(e) => setEditContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleEdit()
+              }
+              if (e.key === 'Escape') {
+                handleCancelEdit()
+              }
+            }}
+          />
 
-      <div
-        data-role={message.role}
-        className='data-[role=user]:-bottom-11 -bottom-8 absolute flex flex-row-reverse items-center self-start whitespace-nowrap text-muted-foreground opacity-0 transition-all ease-in group-hover:opacity-100 data-[role=user]:right-0 data-[role=assistant]:left-3 data-[role=user]:flex-row data-[role=user]:self-end sm:gap-1 dark:data-[role=user]:text-zinc-300'
-      >
-        <p className='shrink-0 whitespace-nowrap px-1 text-xs sm:px-3'>{`${message.modelId ? `${getModelName(message.modelId as ModelsIds)} ` : ''}${formatMessageDateForChatHistory(message.createdAt.toISOString())}`}</p>
+          <div className='flex justify-end gap-2'>
+            <Button size='sm' variant='outline' onClick={handleCancelEdit}>
+              Cancel
+            </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+            <Button size='sm' variant='default' onClick={handleEdit}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className={messageVariants({ variant: message.role })}>
+          <div
+            data-role={message.role}
+            className='max-w-none whitespace-pre-wrap break-words data-[role=user]:text-white'
+          >
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ node, ...props }) => <a {...props} target='_blank' rel='noopener noreferrer' />,
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
+
+          <div
+            data-role={message.role}
+            className={`data-[role=user]:-bottom-11 sm:data-[role=user]:-bottom-10 -bottom-8 absolute flex flex-row-reverse items-center self-start whitespace-nowrap text-muted-foreground transition-all ease-in group-hover:opacity-100 data-[role=user]:right-0 data-[role=assistant]:left-3 data-[role=user]:flex-row data-[role=user]:self-end sm:gap-1 dark:data-[role=user]:text-zinc-300 ${
+              isStreaming ? 'pointer-events-none opacity-0' : 'opacity-0'
+            }`}
+          >
+            <p className='shrink-0 whitespace-nowrap px-1 text-xs sm:px-3'>{`${message.modelId ? `${getModelName(message.modelId as ModelsIds)} ` : ''}${formatMessageDateForChatHistory(message.createdAt.toISOString())}`}</p>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='ghost'
+                  title='Retry message'
+                  data-role={message.role}
+                  className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+                  onClick={() => onRetry?.(messageIndex, message.modelId as ModelsIds)}
+                >
+                  <RefreshCcw className='size-4' />
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent side='top'>
+                <DropdownMenuItem
+                  className='flex cursor-pointer items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'
+                  onClick={() => handleRetry()}
+                >
+                  <RefreshCcw className='size-3' /> <span className='font-medium'>Retry same</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {MODELS.map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    className='flex cursor-pointer items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
+                    onClick={() => handleRetry(model.id)}
+                  >
+                    <div className='flex items-center space-x-2'>
+                      {developerIcon(model.developer)}
+
+                      <div className='flex w-full items-center justify-between space-x-4'>
+                        <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>
+                          {model.name}
+                        </span>
+
+                        <Tooltip>
+                          <TooltipTrigger className='shrink-0 cursor-pointer'>
+                            <Info className='size-3' />
+                          </TooltipTrigger>
+
+                          <TooltipContent>
+                            <p className='max-w-[300px]'>{model.description}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {message.role === 'user' && (
+              <Button
+                variant='ghost'
+                title='Edit message'
+                data-role={message.role}
+                className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className='size-4' />
+              </Button>
+            )}
+
             <Button
               variant='ghost'
-              title='Retry message'
+              title='Copy message'
               data-role={message.role}
               className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
-              onClick={() => onRetry?.(messageIndex, message.modelId as ModelsIds)}
+              onClick={() => {
+                navigator.clipboard.writeText(message.content)
+                toast.success('Copied to clipboard!')
+                setIsCopied(true)
+                setTimeout(() => setIsCopied(false), 1000)
+              }}
             >
-              <RefreshCcw className='size-4' />
+              <AnimatePresence mode='wait'>
+                {isCopied ? (
+                  <motion.div
+                    key='check'
+                    initial={{ scale: 0.75 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ duration: 0.1, ease: 'easeIn' }}
+                  >
+                    <Check className='size-4' />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key='copy'
+                    initial={{ scale: 0.75 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ duration: 0.1, ease: 'easeIn' }}
+                  >
+                    <Copy className='size-4' />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent side='top'>
-            <DropdownMenuItem
-              className='flex cursor-pointer items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'
-              onClick={() => handleRetry()}
-            >
-              <RefreshCcw className='size-3' /> <span className='font-medium'>Retry same</span>
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            {MODELS.map((model) => (
-              <DropdownMenuItem
-                key={model.id}
-                className='flex cursor-pointer items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
-                onClick={() => handleRetry(model.id)}
-              >
-                <div className='flex items-center space-x-2'>
-                  {developerIcon(model.developer)}
-
-                  <div className='flex w-full items-center justify-between space-x-4'>
-                    <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>{model.name}</span>
-
-                    <Tooltip>
-                      <TooltipTrigger className='shrink-0 cursor-pointer'>
-                        <Info className='size-3' />
-                      </TooltipTrigger>
-
-                      <TooltipContent>
-                        <p className='max-w-[300px]'>{model.description}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <Button
-          variant='ghost'
-          title='Copy message'
-          data-role={message.role}
-          className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
-          onClick={() => {
-            navigator.clipboard.writeText(message.content)
-            toast.success('Copied to clipboard!')
-            setIsCopied(true)
-            setTimeout(() => setIsCopied(false), 1000)
-          }}
-        >
-          <AnimatePresence mode='wait'>
-            {isCopied ? (
-              <motion.div
-                key='check'
-                initial={{ scale: 0.75 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                transition={{ duration: 0.1, ease: 'easeIn' }}
-              >
-                <Check className='size-4' />
-              </motion.div>
-            ) : (
-              <motion.div
-                key='copy'
-                initial={{ scale: 0.75 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                transition={{ duration: 0.1, ease: 'easeIn' }}
-              >
-                <Copy className='size-4' />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Button>
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

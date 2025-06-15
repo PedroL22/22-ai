@@ -30,6 +30,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const [messages, setMessages] = useState<MessageType[]>([])
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [userScrolledUp, setUserScrolledUp] = useState(false)
+
   const {
     addChat,
     setCurrentChatId,
@@ -43,6 +44,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     renameChat,
     selectedModelId,
     removeMessagesFromIndex,
+    replaceMessage,
   } = useChatStore()
 
   // Get current chat to check if it's shared
@@ -285,26 +287,141 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     setUserScrolledUp(false) // Reset scroll tracking when manually scrolling to bottom
   }
 
+  const handleEdit = async (messageIndex: number, newContent: string) => {
+    if (isStreaming || !chatId) return
+
+    const targetMessage = messages[messageIndex]
+    if (!targetMessage || targetMessage.role !== 'user') return
+
+    // Only allow editing if user is the owner or it's not a shared chat
+    if (isSharedChat && !isOwner) {
+      console.warn('Cannot edit messages in shared chats that you do not own')
+      return
+    }
+
+    // Create updated message
+    const updatedMessage: MessageType = {
+      ...targetMessage,
+      content: newContent,
+    }
+
+    // Replace the message in the store
+    replaceMessage(chatId, messageIndex, updatedMessage)
+
+    // Sync the updated message to database
+    syncMessage(updatedMessage)
+
+    // Remove all messages after this user message since they're no longer valid
+    const nextMessageIndex = messageIndex + 1
+    if (nextMessageIndex < messages.length) {
+      removeMessagesFromIndex(chatId, nextMessageIndex)
+      // Also remove from database
+      await deleteMessagesFromIndex(chatId, nextMessageIndex)
+    }
+
+    // Update local state with the edited message
+    const updatedMessages = messages.slice(0, messageIndex)
+    updatedMessages[messageIndex] = updatedMessage
+    setMessages(updatedMessages)
+
+    // Update chat timestamp
+    const currentChat = chats.find((chat) => chat.id === chatId)
+    if (currentChat) {
+      const updatedChat = {
+        ...currentChat,
+        updatedAt: new Date(),
+      }
+      syncChat(updatedChat)
+    }
+
+    // Now send the edited message to get a new AI response
+    try {
+      // Get all messages for context (up to and including the edited message)
+      const allMessages = updatedMessages.map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }))
+
+      setIsStreaming(true)
+      setStreamingMessage('')
+
+      await createStreamingChatCompletion(
+        allMessages,
+        selectedModelId,
+        (chunk) => {
+          if (chunk.type === 'chunk' && chunk.content) {
+            setStreamingMessage((prev) => {
+              const newMessage = prev + chunk.content
+              return newMessage
+            })
+          }
+        },
+        async (fullMessage) => {
+          const assistantMessage: MessageType = {
+            id: uuid(),
+            role: 'assistant',
+            content: fullMessage,
+            createdAt: new Date(),
+            userId: '',
+            chatId: chatId,
+            modelId: selectedModelId,
+          }
+
+          // Add assistant message to store and sync to database
+          addMessage(chatId, assistantMessage)
+          syncMessage(assistantMessage)
+
+          // Update local state
+          setMessages((prev) => [...prev, assistantMessage])
+          setIsStreaming(false)
+          setStreamingMessage('')
+
+          // Update chat timestamp after assistant response
+          const currentChat = chats.find((chat) => chat.id === chatId)
+          if (currentChat) {
+            const updatedChat = {
+              ...currentChat,
+              updatedAt: new Date(),
+            }
+            syncChat(updatedChat)
+          }
+        },
+        (error) => {
+          console.error('❌ Streaming error after edit:', error)
+          setIsStreaming(false)
+          setStreamingMessage('')
+        }
+      )
+    } catch (error) {
+      console.error('❌ Failed to get AI response after edit:', error)
+      setIsStreaming(false)
+      setStreamingMessage('')
+    }
+  }
+
   const handleRetry = async (messageIndex: number, modelId?: ModelsIds) => {
     if (isStreaming || !chatId) return
 
     const targetMessage = messages[messageIndex]
     if (!targetMessage) return
 
+    // Only allow retry if user is the owner or it's not a shared chat
     if (isSharedChat && !isOwner) {
       console.warn('Cannot retry messages in shared chats that you do not own')
       return
     }
 
-    const retryModelId = modelId || (targetMessage.modelId as ModelsIds) || selectedModelId // If retrying a user message, we need to regenerate the assistant response
+    // Determine which model to use for retry
+    const retryModelId = modelId || (targetMessage.modelId as ModelsIds) || selectedModelId
 
+    // If retrying a user message, we need to regenerate the assistant response
     // If retrying an assistant message, we just regenerate that message
     if (targetMessage.role === 'user') {
       // Find the next assistant message (if any) and remove everything from that point
       const nextAssistantIndex = messages.findIndex((msg, idx) => idx > messageIndex && msg.role === 'assistant')
       if (nextAssistantIndex !== -1) {
         removeMessagesFromIndex(chatId, nextAssistantIndex)
-        deleteMessagesFromIndex(chatId, nextAssistantIndex) // Also delete from database
+        await deleteMessagesFromIndex(chatId, nextAssistantIndex)
         setMessages(getMessages(chatId))
       }
 
@@ -339,6 +456,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           addMessage(chatId, assistantMessage)
           syncMessage(assistantMessage)
 
+          // Update chat timestamp
           const currentChat = chats.find((chat) => chat.id === chatId)
           if (currentChat) {
             const updatedChat = {
@@ -361,7 +479,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     } else if (targetMessage.role === 'assistant') {
       // Remove all messages from the assistant message index onwards
       removeMessagesFromIndex(chatId, messageIndex)
-      deleteMessagesFromIndex(chatId, messageIndex) // Also delete from database
+      await deleteMessagesFromIndex(chatId, messageIndex)
       setMessages(getMessages(chatId))
 
       // Get all messages up to (but not including) the assistant message for context
@@ -395,6 +513,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           addMessage(chatId, assistantMessage)
           syncMessage(assistantMessage)
 
+          // Update chat timestamp
           const currentChat = chats.find((chat) => chat.id === chatId)
           if (currentChat) {
             const updatedChat = {
@@ -451,7 +570,13 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                 layout='position'
                 className='flex flex-col'
               >
-                <Message message={msg} messageIndex={index} onRetry={handleRetry} />
+                <Message
+                  message={msg}
+                  messageIndex={index}
+                  isStreaming={isStreaming}
+                  onRetry={handleRetry}
+                  onEdit={handleEdit}
+                />
               </motion.div>
             ))}
 
@@ -463,7 +588,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                 layout='position'
                 className='flex flex-col'
               >
-                {' '}
                 <Message
                   message={{
                     role: 'assistant',
@@ -472,7 +596,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                     modelId: selectedModelId,
                   }}
                   messageIndex={messages.length}
+                  isStreaming={true}
                   onRetry={handleRetry}
+                  onEdit={handleEdit}
                 />
               </motion.div>
             )}
