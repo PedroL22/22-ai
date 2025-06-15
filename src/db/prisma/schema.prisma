@@ -47,6 +47,7 @@ model Message {
     role      MessageRole
     content   String
     modelId   String?
+    isError   Boolean     @default(false)
     createdAt DateTime    @default(now())
 
     userId String
