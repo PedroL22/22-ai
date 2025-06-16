@@ -122,7 +122,14 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                a: ({ node, ...props }) => <a {...props} target='_blank' rel='noopener noreferrer' />,
+                a: ({ node, ...props }) => (
+                  <a
+                    {...props}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-primary underline underline-offset-2 hover:text-primary/90'
+                  />
+                ),
               }}
             >
               {message.content}
