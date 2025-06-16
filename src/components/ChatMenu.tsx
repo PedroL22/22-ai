@@ -237,7 +237,9 @@ export const ChatMenu = ({
         <div className='flex w-full items-center justify-between'>
           <ContextMenu>
             <ContextMenuTrigger asChild>
-                <span className='cursor-pointer max-w-54 truncate text-muted-foreground text-sm'>{chatTitle || ''}</span>
+              <div className='w-full cursor-pointer'>
+                <span className='block max-w-54 truncate text-muted-foreground text-sm'>{chatTitle || ''}</span>
+              </div>
             </ContextMenuTrigger>
 
             <ContextMenuContent>
@@ -250,7 +252,7 @@ export const ChatMenu = ({
               <Button
                 variant='ghost'
                 size='icon'
-                className='size-6 shrink-0 opacity-0 hover:bg-accent/50 group-hover:opacity-100'
+                className='size-6 shrink-0 cursor-pointer opacity-0 hover:bg-accent/50 group-hover:opacity-100'
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
