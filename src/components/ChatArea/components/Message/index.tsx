@@ -4,7 +4,7 @@ import { cva } from 'class-variance-authority'
 import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
@@ -13,9 +13,9 @@ import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import './message.css'
+import './index.css'
 
-import { Check, ClipboardCopy, Copy, Edit, ExternalLink, Info, RefreshCcw, Sparkles } from 'lucide-react'
+import { Check, Copy, Edit, Info, RefreshCcw, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import {
@@ -27,6 +27,9 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Textarea } from '~/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { CodeBlock } from './components/CodeBlock'
+import { MarkdownLink } from './components/MarkdownLink'
+import { MarkdownTable } from './components/MarkdownTable'
 
 import { cn } from '~/lib/utils'
 import { formatMessageDateForChatHistory } from '~/utils/format-date-for-chat-history'
@@ -39,7 +42,6 @@ const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl text
   variants: {
     variant: {
       user: 'max-w-[70%] self-end bg-primary px-4 py-3',
-      // user: 'max-w-[70%] self-end bg-border/80', boring theme
       assistant: 'max-w-full self-start bg-transparent',
       error: 'mt-2 max-w-full self-start border border-destructive/20 bg-destructive/10 px-4 py-3',
     },
@@ -62,115 +64,16 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.content)
 
-  const CodeBlock = useCallback(({ inline, className, children, ...props }: any) => {
-    const [codeBlockCopied, setCodeBlockCopied] = useState(false)
-    const codeRef = useRef<HTMLElement>(null)
-
-    const match = /language-(\w+)/.exec(className || '')
-    const language = match ? match[1] : ''
-
-    const copyCode = useCallback(() => {
-      const codeText = String(children).replace(/\n$/, '')
-      navigator.clipboard.writeText(codeText)
-      setCodeBlockCopied(true)
-      setTimeout(() => setCodeBlockCopied(false), 2000)
-    }, [children])
-
-    if (inline) {
-      return (
-        <code className='rounded-md bg-muted px-1.5 py-0.5 font-medium font-mono text-sm' {...props}>
-          {children}
-        </code>
-      )
-    }
-
-    return (
-      <div className='group/code relative my-4 overflow-hidden rounded-lg border bg-muted/50'>
-        {/* Code header with language and copy button */}
-        <div className='flex items-center justify-between border-b bg-muted/80 px-4 py-2'>
-          <span className='font-medium text-muted-foreground text-xs tracking-wide'>{language || 'code'}</span>
-          <button
-            type='button'
-            onClick={copyCode}
-            className='flex items-center gap-1.5 rounded-md bg-background/50 px-2 py-1 font-medium text-muted-foreground text-xs transition-colors hover:bg-background hover:text-foreground'
-            title='Copy code'
-          >
-            <AnimatePresence mode='wait'>
-              {codeBlockCopied ? (
-                <motion.div
-                  key='check'
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0.8 }}
-                  className='flex items-center gap-1'
-                >
-                  <Check className='size-3' />
-                  <span>Copied!</span>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key='copy'
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0.8 }}
-                  className='flex items-center gap-1'
-                >
-                  <ClipboardCopy className='size-3' />
-                  <span>Copy</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </button>
-        </div>
-
-        {/* Code content */}
-        <pre className='overflow-x-auto p-4 text-sm leading-relaxed'>
-          <code ref={codeRef} className={className} {...props}>
-            {children}
-          </code>
-        </pre>
-      </div>
-    )
-  }, [])
-
-  const LinkComponent = useCallback(({ href, children, ...props }: any) => {
-    const isExternal = href?.startsWith('http')
-
-    return (
-      <a
-        href={href}
-        target={isExternal ? '_blank' : undefined}
-        rel={isExternal ? 'noopener noreferrer' : undefined}
-        className='inline-flex items-center gap-1 text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:decoration-primary/60'
-        {...props}
-      >
-        {children}
-        {isExternal && <ExternalLink className='size-3 opacity-70' />}
-      </a>
-    )
-  }, [])
-
-  const TableComponent = useCallback(
-    ({ children, ...props }: any) => (
-      <div className='my-4 overflow-x-auto rounded-lg border'>
-        <table className='w-full text-sm' {...props}>
-          {children}
-        </table>
-      </div>
-    ),
-    []
-  )
-
   const markdownOptions = useMemo(
     () => ({
       remarkPlugins: [remarkGfm, remarkMath, remarkDirective],
       rehypePlugins: [rehypeKatex, rehypeHighlight, rehypeRaw],
       components: {
-        a: LinkComponent,
+        a: MarkdownLink,
 
         code: CodeBlock,
 
-        table: TableComponent,
+        table: MarkdownTable,
         thead: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
           <thead className='bg-muted/50' {...props}>
             {children}
@@ -188,7 +91,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
         ),
 
         blockquote: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <blockquote className='my-4 border-primary/30 border-l-4 bg-muted/50 py-3 pr-4 pl-4 italic' {...props}>
+          <blockquote className='my-4 border-primary border-l-4 bg-muted/50 py-3 pr-4 pl-4 italic' {...props}>
             {children}
           </blockquote>
         ),
@@ -261,7 +164,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
         },
       },
     }),
-    [CodeBlock, LinkComponent, TableComponent]
+    [CodeBlock, MarkdownLink, MarkdownTable]
   )
 
   const handleRetry = (modelId?: ModelsIds) => {
@@ -327,7 +230,9 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
         <div className={messageVariants({ variant: message.isError ? 'error' : message.role })}>
           <div
             data-role={message.role}
-            className={`max-w-none whitespace-pre-wrap break-words data-[role=user]:text-white ${message.isError ? 'text-destructive' : ''}`}
+            className={cn('max-w-none whitespace-pre-wrap break-words data-[role=user]:text-white', {
+              'text-destructive': message.isError,
+            })}
           >
             <ReactMarkdown {...markdownOptions}>{message.content}</ReactMarkdown>
           </div>
