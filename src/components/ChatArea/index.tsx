@@ -1,12 +1,13 @@
 'use client'
 
 import { useUser } from '@clerk/nextjs'
+import throttle from 'lodash/throttle'
+import { AnimatePresence, motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 
 import { ArrowDown, ArrowUp, Share2 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 import { EmptyState } from './components/EmptyState'
@@ -14,10 +15,10 @@ import { Message } from './components/Message'
 import { ModelSelector } from './components/ModelSelector'
 
 import { useChatStore } from '~/stores/useChatStore'
-import { api } from '~/trpc/react'
 
 import { createStreamingChatCompletion } from '~/lib/streaming'
 import { useRealtimeSync } from '~/lib/useRealtimeSync'
+import { api } from '~/trpc/react'
 
 import type { Chat as ChatType, Message as MessageType } from '@prisma/client'
 import type { ModelsIds } from '~/types/models'
@@ -77,15 +78,27 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
   )
 
+  const generateTitleMutation = api.chat.generateChatTitle.useMutation()
+
+  const { syncChat, syncMessage, deleteMessagesFromIndex } = useRealtimeSync()
+
   const isOwner = ownershipData?.isOwner ?? false
   const isSharedChat = currentChat?.isShared || sharedChatData?.isShared || false
 
-  const generateTitleMutation = api.chat.generateChatTitle.useMutation()
-  const { syncChat, syncMessage, deleteMessagesFromIndex } = useRealtimeSync()
 
   const router = useRouter()
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+
+
+  const bufferRef = useRef<string>('')
+  const flushBuffer = useRef(
+    throttle(() => {
+      setStreamingMessage(prev => prev + bufferRef.current)
+      bufferRef.current = ''
+    }, 200)
+  ).current
 
   useEffect(() => {
     if (chatId) {
@@ -116,6 +129,13 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [isStreaming, streamingMessage, userScrolledUp])
+
+
+  useEffect(() => {
+    return () => {
+      flushBuffer.cancel()
+    }
+  }, [flushBuffer])
 
   const handleSuggestionClick = (suggestion: string) => {
     if (isStreaming) return
@@ -222,16 +242,17 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       setIsStreaming(true)
       setStreamingMessage('')
+      // limpar buffer antes de iniciar
+      bufferRef.current = ''
 
       await createStreamingChatCompletion(
         allMessages,
         selectedModelId,
         (chunk) => {
           if (chunk.type === 'chunk' && chunk.content) {
-            setStreamingMessage((prev) => {
-              const newMessage = prev + chunk.content
-              return newMessage
-            })
+            // usar buffer em vez de setStreamingMessage direto
+            bufferRef.current += chunk.content
+            flushBuffer()
           }
         },
         async (fullMessage) => {
@@ -260,6 +281,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
           setMessages(getMessages(currentChatId!))
 
+          // cleanup do throttle na finalização
+          flushBuffer.cancel()
+          bufferRef.current = ''
           setStreamingMessage('')
           setIsStreaming(false)
         },
@@ -282,6 +306,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
           setMessages(getMessages(currentChatId!))
 
+          // cleanup do throttle no erro
+          flushBuffer.cancel()
+          bufferRef.current = ''
           setStreamingMessage('')
           setIsStreaming(false)
         }
@@ -307,6 +334,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         setMessages(getMessages(chatId))
       }
 
+      // cleanup do throttle no erro
+      flushBuffer.cancel()
+      bufferRef.current = ''
       setStreamingMessage('')
       setIsStreaming(false)
     }
@@ -356,6 +386,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       }
       syncChat(updatedChat)
     }
+
     try {
       const allMessages = updatedMessages.map((msg) => ({
         role: msg.role as 'user' | 'assistant',
@@ -364,16 +395,15 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       setIsStreaming(true)
       setStreamingMessage('')
+      bufferRef.current = ''
 
       await createStreamingChatCompletion(
         allMessages,
         selectedModelId,
         (chunk) => {
           if (chunk.type === 'chunk' && chunk.content) {
-            setStreamingMessage((prev) => {
-              const newMessage = prev + chunk.content
-              return newMessage
-            })
+            bufferRef.current += chunk.content
+            flushBuffer()
           }
         },
         async (fullMessage) => {
@@ -393,16 +423,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
           setMessages((prev) => [...prev, assistantMessage])
           setIsStreaming(false)
-          setStreamingMessage('')
 
-          const currentChat = chats.find((chat) => chat.id === chatId)
-          if (currentChat) {
-            const updatedChat = {
-              ...currentChat,
-              updatedAt: new Date(),
-            }
-            syncChat(updatedChat)
-          }
+          flushBuffer.cancel()
+          bufferRef.current = ''
+          setStreamingMessage('')
         },
         async (error) => {
           console.error('❌ Streaming error after edit: ', error)
@@ -424,6 +448,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           setMessages((prev) => [...prev, errorMessage])
 
           setIsStreaming(false)
+
+          flushBuffer.cancel()
+          bufferRef.current = ''
           setStreamingMessage('')
         }
       )
@@ -476,6 +503,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
     if (targetMessage.role === 'user') {
       const nextAssistantIndex = messages.findIndex((msg, idx) => idx > messageIndex && msg.role === 'assistant')
+
       if (nextAssistantIndex !== -1) {
         removeMessagesFromIndex(chatId, nextAssistantIndex)
         await deleteMessagesFromIndex(chatId, nextAssistantIndex)
@@ -489,13 +517,15 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       setIsStreaming(true)
       setStreamingMessage('')
+      bufferRef.current = ''
 
       await createStreamingChatCompletion(
         contextMessages,
         retryModelId,
         (chunk) => {
           if (chunk.type === 'chunk' && chunk.content) {
-            setStreamingMessage((prev) => prev + chunk.content)
+            bufferRef.current += chunk.content
+            flushBuffer()
           }
         },
         async (fullMessage) => {
@@ -522,6 +552,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             syncChat(updatedChat)
           }
           setMessages(getMessages(chatId))
+
+          flushBuffer.cancel()
+          bufferRef.current = ''
           setStreamingMessage('')
           setIsStreaming(false)
         },
@@ -550,7 +583,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       )
     } else if (targetMessage.role === 'assistant') {
       removeMessagesFromIndex(chatId, messageIndex)
+
       await deleteMessagesFromIndex(chatId, messageIndex)
+
       setMessages(getMessages(chatId))
 
       const contextMessages = messages.slice(0, messageIndex).map((msg) => ({
@@ -560,13 +595,15 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       setIsStreaming(true)
       setStreamingMessage('')
+      bufferRef.current = ''
 
       await createStreamingChatCompletion(
         contextMessages,
         retryModelId,
         (chunk) => {
           if (chunk.type === 'chunk' && chunk.content) {
-            setStreamingMessage((prev) => prev + chunk.content)
+            bufferRef.current += chunk.content
+            flushBuffer()
           }
         },
         async (fullMessage) => {
