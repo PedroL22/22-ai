@@ -147,6 +147,7 @@ export const useChatStore = create<ChatStore>()(
         chats: state.chatsDisplayMode === 'local' ? state.chats : [],
         chatsDisplayMode: state.chatsDisplayMode,
         currentChatId: state.currentChatId,
+        selectedModelId: state.selectedModelId,
       }),
       storage: {
         getItem: (name) => {

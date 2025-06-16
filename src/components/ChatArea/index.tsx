@@ -49,8 +49,17 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     removeMessagesFromIndex,
     replaceMessage,
   } = useChatStore()
+  const currentChat = chatId ? chats.find((chat) => chat.id === chatId) : null
 
-  const currentChat = chatId ? chats.find((chat) => chat.id === chatId) : null // Check if current user is the owner of this chat (only if authenticated)
+  const { data: dbMessages } = api.chat.getChatMessages.useQuery(
+    { chatId: chatId! },
+    {
+      enabled: !!chatId && !currentChat && isSignedIn && isLoaded,
+      retry: false,
+      refetchOnWindowFocus: false,
+    }
+  )
+
   const { data: ownershipData } = api.chat.isOwnerOfChat.useQuery(
     { chatId: chatId! },
     { enabled: !!chatId && isSignedIn && isLoaded }
@@ -64,11 +73,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
   )
 
-  // Only fetch shared messages if we confirmed the chat is shared
   const { data: sharedMessages } = api.chat.getSharedChatMessages.useQuery(
     { chatId: chatId! },
     {
-      enabled: !!chatId && sharedChatData?.isShared === true,
+      enabled: !!chatId && (sharedChatData?.isShared === true || !isSignedIn),
       retry: false,
       refetchOnWindowFocus: false,
     }
@@ -81,40 +89,32 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const { syncChat, syncMessage, deleteMessagesFromIndex } = useRealtimeSync()
 
   const router = useRouter()
-
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
-
-  // Load messages when chatId changes or component mounts
   useEffect(() => {
     if (chatId) {
-      // For shared chats, use shared messages if available, otherwise use local messages
-      if (isSharedChat && sharedMessages) {
+      if (sharedMessages) {
         setMessages(sharedMessages)
-      } else {
+      } else if (dbMessages && !currentChat) {
+        const transformedMessages: MessageType[] = dbMessages.map((msg) => ({
+          ...msg,
+          chatId: chatId,
+          modelId: null,
+          isError: false,
+          userId: '',
+        }))
+        setMessages(transformedMessages)
+      } else if (currentChat) {
         const storedMessages = getMessages(chatId)
         setMessages(storedMessages)
+      } else {
+        setMessages([])
       }
     } else {
       setMessages([])
     }
-  }, [chatId, getMessages, isSharedChat, sharedMessages])
+  }, [chatId, sharedMessages, dbMessages, currentChat])
 
-  // Sync local state with store when messages change (only for owned chats)
-  useEffect(() => {
-    if (chatId && !isSharedChat) {
-      const storedMessages = getMessages(chatId)
-      setMessages(storedMessages)
-    }
-  }, [chats, chatId, getMessages, isSharedChat])
-
-  // useEffect(() => {
-  //   if (!isStreaming && message === '' && messages.length > 0) {
-  //     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  //   }
-  // }, [isStreaming, message, messages, streamingMessage])
-
-  // Auto-scroll during streaming if user hasn't manually scrolled up
   useEffect(() => {
     if (isStreaming && !userScrolledUp) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -125,11 +125,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     if (isStreaming) return
     setMessage(suggestion)
   }
-
   const handleSendMessage = async () => {
     if (!message.trim() || isStreaming) return
 
-    // Only allow message sending if user is the owner or it's not a shared chat
     if (isSharedChat && !isOwner) {
       console.warn('Cannot send messages to shared chats that you do not own')
       return
@@ -137,7 +135,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
     const userMessage = message.trim()
     setMessage('')
-    setUserScrolledUp(false) // Reset scroll tracking when sending new message
+    setUserScrolledUp(false)
 
     try {
       let currentChatId = chatId
@@ -145,33 +143,28 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       if (!currentChatId) {
         currentChatId = uuid()
 
-        // Navigate to the new chat immediately
         router.push(`/${currentChatId}`)
 
-        // Create chat locally in store with empty title initially
         const newChat: ChatType = {
           id: currentChatId,
-          title: '', // Empty string initially, will be updated by title generation
+          title: '',
           isPinned: false,
           isShared: false,
           createdAt: new Date(),
           updatedAt: new Date(),
-          userId: '', // Will be set when saved to DB
+          userId: '',
         }
 
-        // Add chat to store immediately
         addChat(newChat)
-        setCurrentChatId(currentChatId) // Sync the new chat to database immediately
+        setCurrentChatId(currentChatId)
         syncChat(newChat)
 
-        // Generate title concurrently using tRPC
         generateTitleMutation
           .mutateAsync({ firstMessage: userMessage })
           .then((result) => {
             const newTitle = result.success && result.title ? result.title : 'New chat'
             renameChat(currentChatId!, newTitle)
 
-            // Sync the updated chat with the new title
             const updatedChat: ChatType = {
               id: currentChatId!,
               title: newTitle,
@@ -187,7 +180,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             console.error('❌ Failed to generate title: ', error)
             renameChat(currentChatId!, 'New chat')
 
-            // Sync the chat with fallback title
             const updatedChat: ChatType = {
               id: currentChatId!,
               title: 'New chat',
@@ -201,7 +193,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           })
       }
 
-      // Add user message to UI immediately
       const tempUserMessage: MessageType = {
         id: uuid(),
         role: 'user',
@@ -216,10 +207,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       setMessages((prev) => [...prev, tempUserMessage])
       addMessage(currentChatId, tempUserMessage)
 
-      // Sync the user message to database
       syncMessage(tempUserMessage)
 
-      // Update and sync chat timestamp after adding message
       const currentChat = chats.find((chat) => chat.id === currentChatId)
       if (currentChat) {
         const updatedChat = {
@@ -228,8 +217,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         }
         syncChat(updatedChat)
       }
-
-      // Get all messages for context
 
       const allMessages = [...messages, tempUserMessage].map((msg) => ({
         role: msg.role as 'user' | 'assistant',
@@ -260,13 +247,11 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             userId: '',
             chatId: currentChatId!,
             modelId: selectedModelId,
-          } // Add to store first
+          }
           addMessage(currentChatId!, assistantMessage)
 
-          // Sync the assistant message to database
           syncMessage(assistantMessage)
 
-          // Update and sync chat timestamp after adding assistant message
           const currentChat = chats.find((chat) => chat.id === currentChatId)
           if (currentChat) {
             const updatedChat = {
@@ -276,7 +261,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             syncChat(updatedChat)
           }
 
-          // Then update local state from store to ensure consistency
           setMessages(getMessages(currentChatId!))
 
           setStreamingMessage('')
@@ -285,7 +269,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         async (error) => {
           console.error('❌ Streaming error: ', error)
 
-          // Create error message
           const errorMessage: MessageType = {
             id: uuid(),
             role: 'assistant',
@@ -297,11 +280,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             modelId: selectedModelId,
           }
 
-          // Add error message to store and sync to database
           addMessage(currentChatId!, errorMessage)
           syncMessage(errorMessage)
 
-          // Update local state from store to ensure consistency
           setMessages(getMessages(currentChatId!))
 
           setStreamingMessage('')
@@ -311,7 +292,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     } catch (err) {
       console.error('❌ Error sending message: ', err)
 
-      // Create error message for general errors
       if (chatId) {
         const errorMessage: MessageType = {
           id: uuid(),
@@ -324,11 +304,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           modelId: selectedModelId,
         }
 
-        // Add error message to store and sync to database
         addMessage(chatId, errorMessage)
         syncMessage(errorMessage)
 
-        // Update local state from store to ensure consistency
         setMessages(getMessages(chatId))
       }
 
@@ -336,11 +314,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       setIsStreaming(false)
     }
   }
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     setShowScrollToBottom(false)
-    setUserScrolledUp(false) // Reset scroll tracking when manually scrolling to bottom
+    setUserScrolledUp(false)
   }
 
   const handleEdit = async (messageIndex: number, newContent: string) => {
@@ -349,38 +326,30 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     const targetMessage = messages[messageIndex]
     if (!targetMessage || targetMessage.role !== 'user') return
 
-    // Only allow editing if user is the owner or it's not a shared chat
     if (isSharedChat && !isOwner) {
       console.warn('Cannot edit messages in shared chats that you do not own')
       return
     }
 
-    // Create updated message
     const updatedMessage: MessageType = {
       ...targetMessage,
       content: newContent,
     }
 
-    // Replace the message in the store
     replaceMessage(chatId, messageIndex, updatedMessage)
 
-    // Sync the updated message to database
     syncMessage(updatedMessage)
 
-    // Remove all messages after this user message since they're no longer valid
     const nextMessageIndex = messageIndex + 1
     if (nextMessageIndex < messages.length) {
       removeMessagesFromIndex(chatId, nextMessageIndex)
-      // Also remove from database
       await deleteMessagesFromIndex(chatId, nextMessageIndex)
     }
 
-    // Update local state with the edited message
     const updatedMessages = messages.slice(0, messageIndex)
     updatedMessages[messageIndex] = updatedMessage
     setMessages(updatedMessages)
 
-    // Update chat timestamp
     const currentChat = chats.find((chat) => chat.id === chatId)
     if (currentChat) {
       const updatedChat = {
@@ -389,10 +358,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       }
       syncChat(updatedChat)
     }
-
-    // Now send the edited message to get a new AI response
     try {
-      // Get all messages for context (up to and including the edited message)
       const allMessages = updatedMessages.map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
@@ -424,16 +390,13 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             modelId: selectedModelId,
           }
 
-          // Add assistant message to store and sync to database
           addMessage(chatId, assistantMessage)
           syncMessage(assistantMessage)
 
-          // Update local state
           setMessages((prev) => [...prev, assistantMessage])
           setIsStreaming(false)
           setStreamingMessage('')
 
-          // Update chat timestamp after assistant response
           const currentChat = chats.find((chat) => chat.id === chatId)
           if (currentChat) {
             const updatedChat = {
@@ -446,7 +409,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         async (error) => {
           console.error('❌ Streaming error after edit: ', error)
 
-          // Create error message
           const errorMessage: MessageType = {
             id: uuid(),
             role: 'assistant',
@@ -458,11 +420,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             modelId: selectedModelId,
           }
 
-          // Add error message to store and sync to database
           addMessage(chatId, errorMessage)
           syncMessage(errorMessage)
 
-          // Update local state
           setMessages((prev) => [...prev, errorMessage])
 
           setIsStreaming(false)
@@ -472,7 +432,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     } catch (error) {
       console.error('❌ Failed to get AI response after edit: ', error)
 
-      // Create error message for edit failures
       const errorMessage: MessageType = {
         id: uuid(),
         role: 'assistant',
@@ -485,11 +444,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         modelId: selectedModelId,
       }
 
-      // Add error message to store and sync to database
       addMessage(chatId, errorMessage)
       syncMessage(errorMessage)
 
-      // Update local state
       setMessages((prev) => [...prev, errorMessage])
 
       setIsStreaming(false)
@@ -503,31 +460,23 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     const targetMessage = messages[messageIndex]
     if (!targetMessage) return
 
-    // Only allow retry if user is the owner or it's not a shared chat
     if (isSharedChat && !isOwner) {
       console.warn('Cannot retry messages in shared chats that you do not own')
       return
     }
 
-    // Determine which model to use for retry
     const retryModelId = modelId || (targetMessage.modelId as ModelsIds) || selectedModelId
 
-    // Update the timestamp of the message being retried
     const updatedTargetMessage: MessageType = {
       ...targetMessage,
       createdAt: new Date(),
     }
-    // Replace the message with updated timestamp
     replaceMessage(chatId, messageIndex, updatedTargetMessage)
     syncMessage(updatedTargetMessage)
 
-    // Update local state to reflect the timestamp change
     setMessages(getMessages(chatId))
 
-    // If retrying a user message, we need to regenerate the assistant response
-    // If retrying an assistant message, we just regenerate that message
     if (targetMessage.role === 'user') {
-      // Find the next assistant message (if any) and remove everything from that point
       const nextAssistantIndex = messages.findIndex((msg, idx) => idx > messageIndex && msg.role === 'assistant')
       if (nextAssistantIndex !== -1) {
         removeMessagesFromIndex(chatId, nextAssistantIndex)
@@ -535,7 +484,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         setMessages(getMessages(chatId))
       }
 
-      // Get all messages up to and including the user message for context
       const contextMessages = messages.slice(0, messageIndex + 1).map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
@@ -567,7 +515,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           addMessage(chatId, assistantMessage)
           syncMessage(assistantMessage)
 
-          // Update chat timestamp
           const currentChat = chats.find((chat) => chat.id === chatId)
           if (currentChat) {
             const updatedChat = {
@@ -583,7 +530,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         async (error) => {
           console.error('❌ Retry streaming error: ', error)
 
-          // Create error message for retry failures
           const errorMessage: MessageType = {
             id: uuid(),
             role: 'assistant',
@@ -595,11 +541,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             modelId: retryModelId,
           }
 
-          // Add error message to store and sync to database
           addMessage(chatId, errorMessage)
           syncMessage(errorMessage)
 
-          // Update local state from store
           setMessages(getMessages(chatId))
 
           setStreamingMessage('')
@@ -607,12 +551,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         }
       )
     } else if (targetMessage.role === 'assistant') {
-      // Remove all messages from the assistant message index onwards
       removeMessagesFromIndex(chatId, messageIndex)
       await deleteMessagesFromIndex(chatId, messageIndex)
       setMessages(getMessages(chatId))
 
-      // Get all messages up to (but not including) the assistant message for context
       const contextMessages = messages.slice(0, messageIndex).map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
@@ -644,7 +586,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           addMessage(chatId, assistantMessage)
           syncMessage(assistantMessage)
 
-          // Update chat timestamp
           const currentChat = chats.find((chat) => chat.id === chatId)
           if (currentChat) {
             const updatedChat = {
@@ -660,7 +601,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         async (error) => {
           console.error('❌ Retry streaming error: ', error)
 
-          // Create error message for assistant message retry failures
           const errorMessage: MessageType = {
             id: uuid(),
             role: 'assistant',
@@ -672,11 +612,9 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             modelId: retryModelId,
           }
 
-          // Add error message to store and sync to database
           addMessage(chatId, errorMessage)
           syncMessage(errorMessage)
 
-          // Update local state from store
           setMessages(getMessages(chatId))
 
           setStreamingMessage('')
@@ -808,7 +746,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 if (e.shiftKey) {
-                  // Allow new line when Shift+Enter is pressed
                   return
                 }
 
