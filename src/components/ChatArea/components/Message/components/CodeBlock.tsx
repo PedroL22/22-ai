@@ -7,12 +7,11 @@ import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 
 type CodeBlockProps = HTMLAttributes<HTMLElement> & {
-  inline?: boolean
   className?: string
   children?: ReactNode
 }
 
-export const CodeBlock = ({ inline, className, children, ...props }: CodeBlockProps) => {
+export const CodeBlock = ({ className, children, ...props }: CodeBlockProps) => {
   const [codeBlockCopied, setCodeBlockCopied] = useState(false)
   const codeRef = useRef<HTMLElement>(null)
 
@@ -27,19 +26,11 @@ export const CodeBlock = ({ inline, className, children, ...props }: CodeBlockPr
     setTimeout(() => setCodeBlockCopied(false), 1000)
   }
 
-  if (inline) {
-    return (
-      <code className='rounded-md bg-muted px-1.5 py-0.5 font-medium font-mono text-sm' {...props}>
-        {children}
-      </code>
-    )
-  }
-
   return (
     <div className='relative my-4 overflow-hidden rounded-sm bg-muted/50'>
       {/* Code header with language and copy button */}
       <div className='flex items-center justify-between bg-zinc-300 px-4 py-1 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200'>
-        <span className='font-mono text-sm'>{language || 'code'}</span>
+        <span className='font-medium font-mono text-sm'>{language || 'code'}</span>
 
         <Button
           type='button'

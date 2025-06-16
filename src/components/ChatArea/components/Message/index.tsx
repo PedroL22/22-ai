@@ -70,8 +70,33 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
       rehypePlugins: [rehypeKatex, rehypeHighlight, rehypeRaw],
       components: {
         a: MarkdownLink,
+        code: ({
+          inline,
+          className,
+          children,
+          ...props
+        }: { inline?: boolean; className?: string; children?: ReactNode; [key: string]: any }) => {
+          if (inline === true || (!className && !String(children).includes('\n'))) {
+            return (
+              <code
+                className='select-all rounded-sm bg-zinc-200 px-2 py-1 font-medium font-mono text-sm dark:bg-zinc-700'
+                {...props}
+              >
+                {children}
+              </code>
+            )
+          }
 
-        code: CodeBlock,
+          return (
+            <CodeBlock className={className} {...props}>
+              {children}
+            </CodeBlock>
+          )
+        },
+
+        pre: ({ children }: { children?: ReactNode; [key: string]: any }) => {
+          return <>{children}</>
+        },
 
         table: MarkdownTable,
         thead: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
@@ -164,7 +189,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
         },
       },
     }),
-    [CodeBlock, MarkdownLink, MarkdownTable]
+    []
   )
 
   const handleRetry = (modelId?: ModelsIds) => {
