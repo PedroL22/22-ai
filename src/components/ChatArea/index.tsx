@@ -1,5 +1,6 @@
 'use client'
 
+import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
@@ -31,6 +32,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [userScrolledUp, setUserScrolledUp] = useState(false)
 
+  const { isSignedIn, isLoaded } = useUser()
+
   const {
     addChat,
     setCurrentChatId,
@@ -47,21 +50,28 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     replaceMessage,
   } = useChatStore()
 
-  // Get current chat to check if it's shared
-  const currentChat = chatId ? chats.find((chat) => chat.id === chatId) : null
-
-  // Check if current user is the owner of this chat
-  const { data: ownershipData } = api.chat.isOwnerOfChat.useQuery({ chatId: chatId! }, { enabled: !!chatId })
-
-  // For shared chats, get the chat data and messages from public endpoints
+  const currentChat = chatId ? chats.find((chat) => chat.id === chatId) : null // Check if current user is the owner of this chat (only if authenticated)
+  const { data: ownershipData } = api.chat.isOwnerOfChat.useQuery(
+    { chatId: chatId! },
+    { enabled: !!chatId && isSignedIn && isLoaded }
+  )
   const { data: sharedChatData } = api.chat.getSharedChat.useQuery(
     { chatId: chatId! },
-    { enabled: !!chatId && (!currentChat || currentChat.isShared) }
+    {
+      enabled: !!chatId && !currentChat,
+      retry: false,
+      refetchOnWindowFocus: false,
+    }
   )
 
+  // Only fetch shared messages if we confirmed the chat is shared
   const { data: sharedMessages } = api.chat.getSharedChatMessages.useQuery(
     { chatId: chatId! },
-    { enabled: !!chatId && (!currentChat || currentChat.isShared) }
+    {
+      enabled: !!chatId && sharedChatData?.isShared === true,
+      retry: false,
+      refetchOnWindowFocus: false,
+    }
   )
 
   const isOwner = ownershipData?.isOwner ?? false

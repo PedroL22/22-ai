@@ -9,7 +9,12 @@ export const createQueryClient = () =>
         // above 0 to avoid refetching immediately on the client
         staleTime: 30 * 1000, // 30 seconds
         refetchInterval: 60000, // 60 seconds
-        retry: 2, // Retry failed queries up to 2 times
+        retry: (failureCount, error) => {
+          if ((error as any)?.data?.code === 'UNAUTHORIZED') {
+            return false
+          }
+          return failureCount < 2
+        },
       },
       dehydrate: {
         serializeData: SuperJSON.serialize,

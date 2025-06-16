@@ -1,3 +1,5 @@
+import { useUser } from '@clerk/nextjs'
+
 import { toast } from 'sonner'
 
 import { api } from '~/trpc/react'
@@ -8,9 +10,16 @@ export type UserSettingsInput = {
 }
 
 export const useUserSettings = () => {
+  const { isSignedIn, isLoaded } = useUser()
   const utils = api.useUtils()
 
-  const { data: settings, isLoading, error } = api.user.getSettings.useQuery()
+  const {
+    data: settings,
+    isLoading,
+    error,
+  } = api.user.getSettings.useQuery(undefined, {
+    enabled: isSignedIn && isLoaded,
+  })
 
   const updateSettingsMutation = api.user.updateSettings.useMutation({
     onSuccess: (updatedSettings) => {

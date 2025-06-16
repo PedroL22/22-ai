@@ -45,8 +45,16 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
     api.createClient({
       links: [
         loggerLink({
-          enabled: (op) =>
-            process.env.NODE_ENV === 'development' || (op.direction === 'down' && op.result instanceof Error),
+          enabled: (op) => {
+            // Don't log UNAUTHORIZED errors to reduce noise in development
+            if (op.direction === 'down' && op.result instanceof Error) {
+              const error = op.result as any
+              if (error.data?.code === 'UNAUTHORIZED') {
+                return false
+              }
+            }
+            return process.env.NODE_ENV === 'development' || (op.direction === 'down' && op.result instanceof Error)
+          },
         }),
         httpBatchStreamLink({
           transformer: SuperJSON,

@@ -140,14 +140,15 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
             data-role={message.role}
             data-is-error={message.isError}
             className={cn(
-              'absolute flex flex-row-reverse items-center self-start whitespace-nowrap text-muted-foreground transition-all ease-in group-hover:opacity-100 sm:gap-1 dark:data-[role=user]:text-zinc-300',
+              'absolute flex flex-row-reverse items-center self-start whitespace-nowrap text-muted-foreground transition-all ease-in sm:gap-1 dark:data-[role=user]:text-zinc-300',
               '-bottom-8',
               'data-[is-error=true]:-bottom-11 sm:data-[is-error=true]:-bottom-10',
               'data-[role=user]:-bottom-11 sm:data-[role=user]:-bottom-10',
               'data-[role=user]:right-0 data-[role=user]:flex-row data-[role=user]:self-end',
               // Position logic: error takes precedence over role
               message.isError ? 'left-0' : message.role === 'assistant' ? 'left-3' : '',
-              isStreaming ? 'pointer-events-none opacity-0' : 'opacity-0'
+
+              isStreaming ? 'pointer-events-none opacity-0' : 'opacity-0 group-hover:opacity-100'
             )}
           >
             <p className='shrink-0 whitespace-nowrap px-1 text-xs sm:px-3'>{`${message.modelId ? `${getModelName(message.modelId as ModelsIds)} ` : ''}${formatMessageDateForChatHistory(message.createdAt.toISOString())}`}</p>
