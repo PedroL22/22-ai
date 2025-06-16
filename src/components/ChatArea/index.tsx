@@ -85,17 +85,15 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const isOwner = ownershipData?.isOwner ?? false
   const isSharedChat = currentChat?.isShared || sharedChatData?.isShared || false
 
-
   const router = useRouter()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
-
   const bufferRef = useRef<string>('')
   const flushBuffer = useRef(
     throttle(() => {
-      setStreamingMessage(prev => prev + bufferRef.current)
+      setStreamingMessage((prev) => prev + bufferRef.current)
       bufferRef.current = ''
     }, 200)
   ).current
@@ -129,7 +127,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [isStreaming, streamingMessage, userScrolledUp])
-
 
   useEffect(() => {
     return () => {
