@@ -26,9 +26,6 @@ export async function* streamChatCompletion(
     })
 
     if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.')
-      }
       throw new Error('Provider error, please try again later.')
     }
 
