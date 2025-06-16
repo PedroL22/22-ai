@@ -120,13 +120,46 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     } else {
       setMessages([])
     }
+
+    // Scroll automatically to the bottom when messages load
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      setShowScrollToBottom(false)
+      setUserScrolledUp(false)
+    }, 100)
   }, [chatId, sharedMessages, dbMessages, currentChat])
+
 
   useEffect(() => {
     if (isStreaming && !userScrolledUp) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      setShowScrollToBottom(false)
     }
   }, [isStreaming, streamingMessage, userScrolledUp])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return
+
+      const container = chatContainerRef.current
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50 // 50px threshold
+
+      if (!isAtBottom && !showScrollToBottom) {
+        setShowScrollToBottom(true)
+        setUserScrolledUp(true)
+      } else if (isAtBottom && showScrollToBottom) {
+        setShowScrollToBottom(false)
+        setUserScrolledUp(false)
+      }
+    }
+
+    const container = chatContainerRef.current
+    if (container) {
+      container.addEventListener('scroll', handleScroll)
+      return () => container.removeEventListener('scroll', handleScroll)
+    }
+  }, [showScrollToBottom])
 
   useEffect(() => {
     return () => {
