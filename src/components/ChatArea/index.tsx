@@ -129,7 +129,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }, 100)
   }, [chatId, sharedMessages, dbMessages, currentChat])
 
-
   useEffect(() => {
     if (isStreaming && !userScrolledUp) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

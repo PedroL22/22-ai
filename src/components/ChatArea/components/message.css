@@ -1,0 +1,140 @@
+
+/* Improved code highlighting for different themes */
+.hljs {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+/* Math rendering improvements */
+.katex-display {
+  margin: 1.5rem 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex {
+  font-size: 1.1em !important;
+}
+
+/* Dark theme code highlighting */
+@media (prefers-color-scheme: dark) {
+  .hljs {
+    color: #e6edf3;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-literal,
+  .hljs-section,
+  .hljs-link {
+    color: #ff7b72;
+  }
+
+  .hljs-function .hljs-keyword {
+    color: #d2a8ff;
+  }
+
+  .hljs-subst {
+    color: #e6edf3;
+  }
+
+  .hljs-string,
+  .hljs-title,
+  .hljs-name,
+  .hljs-type,
+  .hljs-attribute,
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-addition,
+  .hljs-variable,
+  .hljs-template-tag,
+  .hljs-template-variable {
+    color: #a5d6ff;
+  }
+
+  .hljs-comment,
+  .hljs-quote,
+  .hljs-deletion,
+  .hljs-meta {
+    color: #8b949e;
+  }
+
+  .hljs-number {
+    color: #79c0ff;
+  }
+}
+
+/* Light theme code highlighting adjustments */
+@media (prefers-color-scheme: light) {
+  .hljs {
+    color: #24292f;
+  }
+}
+
+/* Enhanced table styling */
+.prose table {
+  font-size: 0.875rem;
+}
+
+.prose thead th {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.prose tbody tr:nth-child(even) {
+  background-color: var(--muted);
+}
+
+/* Improved scrollbar for code blocks */
+pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+pre::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 4px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}
+
+/* Math overflow handling */
+.katex-display > .katex {
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+/* Better inline math */
+.katex {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Code block improvements */
+pre code {
+  background: transparent;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Responsive improvements for mobile */
+@media (max-width: 640px) {
+  .katex-display {
+    font-size: 1rem !important;
+  }
+
+  pre {
+    font-size: 0.8rem;
+  }
+
+  .prose table {
+    font-size: 0.8rem;
+  }
+}

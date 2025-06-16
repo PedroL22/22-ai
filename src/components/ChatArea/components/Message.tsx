@@ -3,11 +3,21 @@
 import { cva } from 'class-variance-authority'
 import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
-import { useState } from 'react'
+import type { ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import rehypeHighlight from 'rehype-highlight'
+import rehypeKatex from 'rehype-katex'
+import rehypeRaw from 'rehype-raw'
+import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 
-import { Check, Copy, Edit, Info, RefreshCcw, Sparkles } from 'lucide-react'
+import 'highlight.js/styles/github-dark.css'
+import 'katex/dist/katex.min.css'
+import './message.css'
+
+import { Check, ClipboardCopy, Copy, Edit, ExternalLink, Info, RefreshCcw, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import {
@@ -53,6 +63,210 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
   const [isCopied, setIsCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.content)
+
+  const CodeBlock = useCallback(({ inline, className, children, ...props }: any) => {
+    const [codeBlockCopied, setCodeBlockCopied] = useState(false)
+    const codeRef = useRef<HTMLElement>(null)
+
+    const match = /language-(\w+)/.exec(className || '')
+    const language = match ? match[1] : ''
+
+    const copyCode = useCallback(() => {
+      const codeText = String(children).replace(/\n$/, '')
+      navigator.clipboard.writeText(codeText)
+      setCodeBlockCopied(true)
+      setTimeout(() => setCodeBlockCopied(false), 2000)
+    }, [children])
+
+    if (inline) {
+      return (
+        <code className='rounded-md bg-muted px-1.5 py-0.5 font-medium font-mono text-sm' {...props}>
+          {children}
+        </code>
+      )
+    }
+
+    return (
+      <div className='group/code relative my-4 overflow-hidden rounded-lg border bg-muted/50'>
+        {/* Code header with language and copy button */}
+        <div className='flex items-center justify-between border-b bg-muted/80 px-4 py-2'>
+          <span className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+            {language || 'code'}
+          </span>
+          <button
+            type='button'
+            onClick={copyCode}
+            className='flex items-center gap-1.5 rounded-md bg-background/50 px-2 py-1 font-medium text-muted-foreground text-xs transition-colors hover:bg-background hover:text-foreground'
+            title='Copy code'
+          >
+            <AnimatePresence mode='wait'>
+              {codeBlockCopied ? (
+                <motion.div
+                  key='check'
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0.8 }}
+                  className='flex items-center gap-1'
+                >
+                  <Check className='size-3' />
+                  <span>Copied!</span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key='copy'
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0.8 }}
+                  className='flex items-center gap-1'
+                >
+                  <ClipboardCopy className='size-3' />
+                  <span>Copy</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
+        </div>
+
+        {/* Code content */}
+        <pre className='overflow-x-auto p-4 text-sm leading-relaxed'>
+          <code ref={codeRef} className={className} {...props}>
+            {children}
+          </code>
+        </pre>
+      </div>
+    )
+  }, [])
+
+  const LinkComponent = useCallback(({ href, children, ...props }: any) => {
+    const isExternal = href?.startsWith('http')
+
+    return (
+      <a
+        href={href}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+        className='inline-flex items-center gap-1 text-primary underline decoration-primary/30 underline-offset-2 transition-colors hover:decoration-primary/60'
+        {...props}
+      >
+        {children}
+        {isExternal && <ExternalLink className='size-3 opacity-70' />}
+      </a>
+    )
+  }, [])
+
+  const TableComponent = useCallback(
+    ({ children, ...props }: any) => (
+      <div className='my-4 overflow-x-auto rounded-lg border'>
+        <table className='w-full text-sm' {...props}>
+          {children}
+        </table>
+      </div>
+    ),
+    []
+  )
+
+  const markdownOptions = useMemo(
+    () => ({
+      remarkPlugins: [remarkGfm, remarkMath, remarkDirective],
+      rehypePlugins: [rehypeKatex, rehypeHighlight, rehypeRaw],
+      components: {
+        a: LinkComponent,
+
+        code: CodeBlock,
+
+        table: TableComponent,
+        thead: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <thead className='bg-muted/50' {...props}>
+            {children}
+          </thead>
+        ),
+        th: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <th className='border-b px-4 py-2 text-left font-semibold' {...props}>
+            {children}
+          </th>
+        ),
+        td: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <td className='border-b px-4 py-2' {...props}>
+            {children}
+          </td>
+        ),
+
+        blockquote: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <blockquote className='my-4 border-primary/30 border-l-4 bg-muted/50 py-3 pr-4 pl-4 italic' {...props}>
+            {children}
+          </blockquote>
+        ),
+
+        h1: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <h1 className='mt-6 mb-4 font-bold text-2xl' {...props}>
+            {children}
+          </h1>
+        ),
+        h2: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <h2 className='mt-5 mb-3 font-semibold text-xl' {...props}>
+            {children}
+          </h2>
+        ),
+        h3: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <h3 className='mt-4 mb-2 font-semibold text-lg' {...props}>
+            {children}
+          </h3>
+        ),
+        h4: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <h4 className='mt-3 mb-2 font-semibold text-base' {...props}>
+            {children}
+          </h4>
+        ),
+
+        ul: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <ul className='my-2 ml-4 list-disc space-y-1' {...props}>
+            {children}
+          </ul>
+        ),
+        ol: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <ol className='my-2 ml-4 list-decimal space-y-1' {...props}>
+            {children}
+          </ol>
+        ),
+        li: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <li className='leading-relaxed' {...props}>
+            {children}
+          </li>
+        ),
+
+        p: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
+          <p className='my-2 leading-relaxed' {...props}>
+            {children}
+          </p>
+        ),
+
+        div: ({ className, children, ...props }: { className?: string; children?: ReactNode; [key: string]: any }) => {
+          if (className?.includes('math-display')) {
+            return (
+              <div className='my-4 overflow-x-auto text-center' {...props}>
+                {children}
+              </div>
+            )
+          }
+          return (
+            <div className={className} {...props}>
+              {children}
+            </div>
+          )
+        },
+
+        hr: ({ ...props }: { [key: string]: any }) => <hr className='my-6 border-border' {...props} />,
+
+        input: ({ type, checked, ...props }: { type?: string; checked?: boolean; [key: string]: any }) => {
+          if (type === 'checkbox') {
+            return <input type='checkbox' checked={checked} disabled className='mr-2 cursor-default' {...props} />
+          }
+          return <input type={type} {...props} />
+        },
+      },
+    }),
+    [CodeBlock, LinkComponent, TableComponent]
+  )
 
   const handleRetry = (modelId?: ModelsIds) => {
     if (onRetry) {
@@ -119,21 +333,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
             data-role={message.role}
             className={`max-w-none whitespace-pre-wrap break-words data-[role=user]:text-white ${message.isError ? 'text-destructive' : ''}`}
           >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                a: ({ node, ...props }) => (
-                  <a
-                    {...props}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-primary underline underline-offset-2 hover:text-primary/90'
-                  />
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+            <ReactMarkdown {...markdownOptions}>{message.content}</ReactMarkdown>
           </div>
 
           <div
