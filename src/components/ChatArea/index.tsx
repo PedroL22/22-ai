@@ -56,10 +56,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     {
       enabled: !!chatId && !currentChat && isSignedIn && isLoaded,
       retry: false,
-      refetchOnWindowFocus: false,
     }
   )
-
   const { data: ownershipData } = api.chat.isOwnerOfChat.useQuery(
     { chatId: chatId! },
     { enabled: !!chatId && isSignedIn && isLoaded }
@@ -69,16 +67,13 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     {
       enabled: !!chatId && !currentChat,
       retry: false,
-      refetchOnWindowFocus: false,
     }
   )
-
   const { data: sharedMessages } = api.chat.getSharedChatMessages.useQuery(
     { chatId: chatId! },
     {
       enabled: !!chatId && (sharedChatData?.isShared === true || !isSignedIn),
       retry: false,
-      refetchOnWindowFocus: false,
     }
   )
 
@@ -91,6 +86,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (chatId) {
       if (sharedMessages) {
@@ -125,6 +121,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     if (isStreaming) return
     setMessage(suggestion)
   }
+
   const handleSendMessage = async () => {
     if (!message.trim() || isStreaming) return
 
@@ -314,6 +311,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       setIsStreaming(false)
     }
   }
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     setShowScrollToBottom(false)
