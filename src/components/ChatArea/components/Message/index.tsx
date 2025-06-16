@@ -38,12 +38,12 @@ import { getModelName } from '~/utils/get-model-name'
 import type { Message as MessageType } from '@prisma/client'
 import { MODELS, type ModelsDevelopers, type ModelsIds } from '~/types/models'
 
-const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl text-sm', {
+const messageVariants = cva('group relative flex flex-col gap-0.5 rounded-2xl text-sm', {
   variants: {
     variant: {
       user: 'max-w-[70%] self-end bg-primary px-4 py-3',
       assistant: 'max-w-full self-start bg-transparent',
-      error: 'mt-2 max-w-full self-start border border-destructive/20 bg-destructive/10 px-4 py-3',
+      error: 'mt-1 max-w-full self-start border border-destructive/20 bg-destructive/10 px-4 py-3',
     },
   },
   defaultVariants: {
@@ -79,7 +79,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
           if (inline === true || (!className && !String(children).includes('\n'))) {
             return (
               <code
-                className='select-all rounded-sm bg-zinc-200 px-2 py-1 font-medium font-mono text-sm dark:bg-zinc-700'
+                className='select-all rounded-sm bg-zinc-200 px-1.5 py-0.5 font-medium font-mono text-sm dark:bg-zinc-700'
                 {...props}
               >
                 {children}
@@ -93,11 +93,9 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
             </CodeBlock>
           )
         },
-
         pre: ({ children }: { children?: ReactNode; [key: string]: any }) => {
           return <>{children}</>
         },
-
         table: MarkdownTable,
         thead: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
           <thead className='bg-muted/50' {...props}>
@@ -114,60 +112,55 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
             {children}
           </td>
         ),
-
         blockquote: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <blockquote className='my-4 border-primary border-l-4 bg-muted/50 py-3 pr-4 pl-4 italic' {...props}>
+          <blockquote className='my-2 border-primary border-l-4 bg-muted/50 py-2 pr-4 pl-4 italic' {...props}>
             {children}
           </blockquote>
         ),
-
         h1: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <h1 className='mt-6 mb-4 font-bold text-2xl' {...props}>
+          <h1 className='mt-4 mb-1 font-bold text-2xl' {...props}>
             {children}
           </h1>
         ),
         h2: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <h2 className='mt-5 mb-3 font-semibold text-xl' {...props}>
+          <h2 className='mt-3 mb-1 font-semibold text-xl' {...props}>
             {children}
           </h2>
         ),
         h3: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <h3 className='mt-4 mb-2 font-semibold text-lg' {...props}>
+          <h3 className='mt-2 font-semibold text-lg' {...props}>
             {children}
           </h3>
         ),
         h4: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <h4 className='mt-3 mb-2 font-semibold text-base' {...props}>
+          <h4 className='mt-2 font-semibold text-base' {...props}>
             {children}
           </h4>
         ),
-
         ul: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <ul className='my-2 ml-4 list-disc space-y-1' {...props}>
+          <ul className='my-1 ml-4 list-disc space-y-0.5 text-base' {...props}>
             {children}
           </ul>
         ),
         ol: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <ol className='my-2 ml-4 list-decimal space-y-1' {...props}>
+          <ol className='my-1 ml-4 list-decimal space-y-0.5 text-base' {...props}>
             {children}
           </ol>
         ),
         li: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <li className='leading-relaxed' {...props}>
+          <li className='text-base leading-relaxed' {...props}>
             {children}
           </li>
         ),
-
         p: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <p className='my-2 leading-relaxed' {...props}>
+          <p className='my-1 text-base leading-relaxed' {...props}>
             {children}
           </p>
         ),
-
         div: ({ className, children, ...props }: { className?: string; children?: ReactNode; [key: string]: any }) => {
           if (className?.includes('math-display')) {
             return (
-              <div className='my-4 overflow-x-auto text-center' {...props}>
+              <div className='my-2 overflow-x-auto text-center' {...props}>
                 {children}
               </div>
             )
@@ -178,12 +171,12 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
             </div>
           )
         },
-
-        hr: ({ ...props }: { [key: string]: any }) => <hr className='my-6 border-border' {...props} />,
-
+        hr: ({ ...props }: { [key: string]: any }) => <hr className='my-3 border-border' {...props} />,
         input: ({ type, checked, ...props }: { type?: string; checked?: boolean; [key: string]: any }) => {
           if (type === 'checkbox') {
-            return <input type='checkbox' checked={checked} disabled className='mr-2 cursor-default' {...props} />
+            return (
+              <input type='checkbox' checked={checked} disabled className='mr-2 cursor-default text-base' {...props} />
+            )
           }
           return <input type={type} {...props} />
         },
