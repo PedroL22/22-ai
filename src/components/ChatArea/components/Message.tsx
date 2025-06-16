@@ -33,7 +33,7 @@ const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl px-4
       user: 'max-w-[70%] self-end bg-primary',
       // user: 'max-w-[70%] self-end bg-border/80', boring theme
       assistant: 'max-w-full self-start bg-transparent',
-      error: 'max-w-full self-start border border-destructive/20 bg-destructive/10',
+      error: 'mt-2 max-w-full self-start border border-destructive/20 bg-destructive/10',
     },
   },
   defaultVariants: {

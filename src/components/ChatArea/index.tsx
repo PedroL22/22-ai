@@ -512,6 +512,18 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     // Determine which model to use for retry
     const retryModelId = modelId || (targetMessage.modelId as ModelsIds) || selectedModelId
 
+    // Update the timestamp of the message being retried
+    const updatedTargetMessage: MessageType = {
+      ...targetMessage,
+      createdAt: new Date(),
+    }
+    // Replace the message with updated timestamp
+    replaceMessage(chatId, messageIndex, updatedTargetMessage)
+    syncMessage(updatedTargetMessage)
+
+    // Update local state to reflect the timestamp change
+    setMessages(getMessages(chatId))
+
     // If retrying a user message, we need to regenerate the assistant response
     // If retrying an assistant message, we just regenerate that message
     if (targetMessage.role === 'user') {
