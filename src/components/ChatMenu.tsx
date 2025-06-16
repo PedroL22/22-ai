@@ -237,9 +237,7 @@ export const ChatMenu = ({
         <div className='flex w-full items-center justify-between'>
           <ContextMenu>
             <ContextMenuTrigger asChild>
-              <div className='flex-1 cursor-pointer'>
-                <span className='truncate text-muted-foreground text-sm'>{chatTitle || ''}</span>
-              </div>
+                <span className='cursor-pointer max-w-54 truncate text-muted-foreground text-sm'>{chatTitle || ''}</span>
             </ContextMenuTrigger>
 
             <ContextMenuContent>
