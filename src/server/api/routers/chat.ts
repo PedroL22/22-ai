@@ -46,7 +46,7 @@ export const chatRouter = createTRPCRouter({
     }),
 
   generateChatTitle: publicProcedure.input(z.object({ firstMessage: z.string() })).mutation(async ({ input }) => {
-    console.log('🎯 tRPC: Starting title generation for message:', input.firstMessage)
+    console.log('🎯 tRPC: Starting title generation for message: ', input.firstMessage)
 
     const { data, error } = await tryCatch(
       createChatCompletion(
@@ -492,6 +492,7 @@ export const chatRouter = createTRPCRouter({
           id: z.string(),
           role: z.enum(['user', 'assistant']),
           content: z.string(),
+          isError: z.boolean(),
           modelId: z.string().nullable(),
           createdAt: z.date(),
           chatId: z.string(),
@@ -509,6 +510,7 @@ export const chatRouter = createTRPCRouter({
             id: input.message.id,
             role: input.message.role,
             content: input.message.content,
+            isError: input.message.isError || false,
             modelId: input.message.modelId,
             createdAt: input.message.createdAt,
             chatId: input.message.chatId,
@@ -546,7 +548,7 @@ export const chatRouter = createTRPCRouter({
       ownerName =
         clerkUser.fullName || clerkUser.firstName || clerkUser.emailAddresses[0]?.emailAddress || 'Unknown User'
     } catch (error) {
-      console.error('Failed to fetch user from Clerk:', error)
+      console.error('Failed to fetch user from Clerk: ', error)
     }
 
     return {

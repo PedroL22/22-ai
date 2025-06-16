@@ -30,7 +30,7 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
   )
 
   if (error) {
-    console.error('❌ OpenAI API error:', error)
+    console.error('❌ OpenAI API error: ', error)
 
     return {
       success: false,
@@ -57,7 +57,7 @@ export const createChatCompletionStream = async (messages: ChatMessage[], modelI
   )
 
   if (error) {
-    console.error('❌ OpenAI API error:', error)
+    console.error('❌ OpenAI API error: ', error)
 
     return {
       success: false,

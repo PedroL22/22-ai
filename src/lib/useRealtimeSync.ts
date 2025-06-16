@@ -24,13 +24,13 @@ export const useRealtimeSync = () => {
 
   const syncMessageMutation = api.chat.syncMessageToDatabase.useMutation({
     onError: (error) => {
-      console.error('❌ Failed to sync message to database:', error)
+      console.error('❌ Failed to sync message to database: ', error)
     },
   })
 
   const deleteMessagesFromIndexMutation = api.chat.deleteMessagesFromIndex.useMutation({
     onError: (error) => {
-      console.error('❌ Failed to delete messages from database:', error)
+      console.error('❌ Failed to delete messages from database: ', error)
     },
   })
 
@@ -67,6 +67,7 @@ export const useRealtimeSync = () => {
             id: message.id,
             role: message.role,
             content: message.content,
+            isError: message.isError,
             modelId: message.modelId,
             createdAt: message.createdAt,
             chatId: message.chatId,

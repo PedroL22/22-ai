@@ -14,13 +14,13 @@ export const useUserSettings = () => {
 
   const updateSettingsMutation = api.user.updateSettings.useMutation({
     onSuccess: (updatedSettings) => {
-      console.log('Settings updated successfully:', updatedSettings)
+      console.log('Settings updated successfully: ', updatedSettings)
       // Update the cache with new data
       utils.user.getSettings.setData(undefined, updatedSettings)
       toast.success('✅ Settings updated successfully.')
     },
     onError: (error) => {
-      console.log('Settings update error:', error)
+      console.log('Settings update error: ', error)
       // On error, invalidate and refetch to get the actual state from the server
       utils.user.getSettings.invalidate()
       toast.error(`❌ Failed to update settings: ${error.message}`)

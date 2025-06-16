@@ -26,11 +26,14 @@ export async function* streamChatCompletion(
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again later.')
+      }
+      throw new Error('Provider error, please try again later.')
     }
 
     if (!response.body) {
-      throw new Error('No response body.')
+      throw new Error('Provider error, please try again later.')
     }
 
     const reader = response.body.getReader()

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await tryCatch(createChatCompletionStream(messages, modelId))
 
     if (error) {
-      console.error('❌ Error creating chat completion stream:', error)
+      console.error('❌ Error creating chat completion stream: ', error)
       return NextResponse.json({ error: 'Failed to create streaming response' }, { status: 500 })
     }
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(`data: ${finalData}\n\n`))
           controller.close()
         } catch (streamError) {
-          console.error('❌ Error processing stream:', streamError)
+          console.error('❌ Error processing stream: ', streamError)
 
           const errorData = JSON.stringify({
             type: 'error',
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (parseError) {
-    console.error('❌ Error parsing request:', parseError)
+    console.error('❌ Error parsing request: ', parseError)
     return NextResponse.json({ error: 'Invalid request format' }, { status: 400 })
   }
 }

@@ -20,6 +20,7 @@ import {
 import { Textarea } from '~/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
+import { cn } from '~/lib/utils'
 import { formatMessageDateForChatHistory } from '~/utils/format-date-for-chat-history'
 import { getModelName } from '~/utils/get-model-name'
 
@@ -32,6 +33,7 @@ const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl px-4
       user: 'max-w-[70%] self-end bg-primary',
       // user: 'max-w-[70%] self-end bg-border/80', boring theme
       assistant: 'max-w-full self-start bg-transparent',
+      error: 'max-w-full self-start border border-destructive/20 bg-destructive/10',
     },
   },
   defaultVariants: {
@@ -112,10 +114,10 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
           </div>
         </div>
       ) : (
-        <div className={messageVariants({ variant: message.role })}>
+        <div className={messageVariants({ variant: message.isError ? 'error' : message.role })}>
           <div
             data-role={message.role}
-            className='max-w-none whitespace-pre-wrap break-words data-[role=user]:text-white'
+            className={`max-w-none whitespace-pre-wrap break-words data-[role=user]:text-white ${message.isError ? 'text-destructive' : ''}`}
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -129,9 +131,17 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
 
           <div
             data-role={message.role}
-            className={`data-[role=user]:-bottom-11 sm:data-[role=user]:-bottom-10 -bottom-8 absolute flex flex-row-reverse items-center self-start whitespace-nowrap text-muted-foreground transition-all ease-in group-hover:opacity-100 data-[role=user]:right-0 data-[role=assistant]:left-3 data-[role=user]:flex-row data-[role=user]:self-end sm:gap-1 dark:data-[role=user]:text-zinc-300 ${
+            data-is-error={message.isError}
+            className={cn(
+              'absolute flex flex-row-reverse items-center self-start whitespace-nowrap text-muted-foreground transition-all ease-in group-hover:opacity-100 sm:gap-1 dark:data-[role=user]:text-zinc-300',
+              '-bottom-8',
+              'data-[is-error=true]:-bottom-11 sm:data-[is-error=true]:-bottom-10',
+              'data-[role=user]:-bottom-11 sm:data-[role=user]:-bottom-10',
+              'data-[role=user]:right-0 data-[role=user]:flex-row data-[role=user]:self-end',
+              // Position logic: error takes precedence over role
+              message.isError ? 'left-0' : message.role === 'assistant' ? 'left-3' : '',
               isStreaming ? 'pointer-events-none opacity-0' : 'opacity-0'
-            }`}
+            )}
           >
             <p className='shrink-0 whitespace-nowrap px-1 text-xs sm:px-3'>{`${message.modelId ? `${getModelName(message.modelId as ModelsIds)} ` : ''}${formatMessageDateForChatHistory(message.createdAt.toISOString())}`}</p>
 

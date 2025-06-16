@@ -272,14 +272,58 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           setStreamingMessage('')
           setIsStreaming(false)
         },
-        (error) => {
+        async (error) => {
           console.error('❌ Streaming error: ', error)
+
+          // Create error message
+          const errorMessage: MessageType = {
+            id: uuid(),
+            role: 'assistant',
+            content: error,
+            isError: true,
+            createdAt: new Date(),
+            userId: '',
+            chatId: currentChatId!,
+            modelId: selectedModelId,
+          }
+
+          // Add error message to store and sync to database
+          addMessage(currentChatId!, errorMessage)
+          syncMessage(errorMessage)
+
+          // Update local state from store to ensure consistency
+          setMessages(getMessages(currentChatId!))
+
           setStreamingMessage('')
           setIsStreaming(false)
         }
       )
     } catch (err) {
       console.error('❌ Error sending message: ', err)
+
+      // Create error message for general errors
+      if (chatId) {
+        const errorMessage: MessageType = {
+          id: uuid(),
+          role: 'assistant',
+          content: err instanceof Error ? err.message : 'An unexpected error occurred while sending your message.',
+          isError: true,
+          createdAt: new Date(),
+          userId: '',
+          chatId: chatId,
+          modelId: selectedModelId,
+        }
+
+        // Add error message to store and sync to database
+        addMessage(chatId, errorMessage)
+        syncMessage(errorMessage)
+
+        // Update local state from store to ensure consistency
+        setMessages(getMessages(chatId))
+      }
+
+      setStreamingMessage('')
+      setIsStreaming(false)
     }
   }
 
@@ -389,14 +433,55 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             syncChat(updatedChat)
           }
         },
-        (error) => {
-          console.error('❌ Streaming error after edit:', error)
+        async (error) => {
+          console.error('❌ Streaming error after edit: ', error)
+
+          // Create error message
+          const errorMessage: MessageType = {
+            id: uuid(),
+            role: 'assistant',
+            content: error,
+            isError: true,
+            createdAt: new Date(),
+            userId: '',
+            chatId: chatId,
+            modelId: selectedModelId,
+          }
+
+          // Add error message to store and sync to database
+          addMessage(chatId, errorMessage)
+          syncMessage(errorMessage)
+
+          // Update local state
+          setMessages((prev) => [...prev, errorMessage])
+
           setIsStreaming(false)
           setStreamingMessage('')
         }
       )
     } catch (error) {
-      console.error('❌ Failed to get AI response after edit:', error)
+      console.error('❌ Failed to get AI response after edit: ', error)
+
+      // Create error message for edit failures
+      const errorMessage: MessageType = {
+        id: uuid(),
+        role: 'assistant',
+        content:
+          error instanceof Error ? error.message : 'An unexpected error occurred while getting AI response after edit.',
+        isError: true,
+        createdAt: new Date(),
+        userId: '',
+        chatId: chatId,
+        modelId: selectedModelId,
+      }
+
+      // Add error message to store and sync to database
+      addMessage(chatId, errorMessage)
+      syncMessage(errorMessage)
+
+      // Update local state
+      setMessages((prev) => [...prev, errorMessage])
+
       setIsStreaming(false)
       setStreamingMessage('')
     }
@@ -469,13 +554,32 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             }
             syncChat(updatedChat)
           }
-
           setMessages(getMessages(chatId))
           setStreamingMessage('')
           setIsStreaming(false)
         },
-        (error) => {
+        async (error) => {
           console.error('❌ Retry streaming error: ', error)
+
+          // Create error message for retry failures
+          const errorMessage: MessageType = {
+            id: uuid(),
+            role: 'assistant',
+            content: error,
+            isError: true,
+            createdAt: new Date(),
+            userId: '',
+            chatId: chatId,
+            modelId: retryModelId,
+          }
+
+          // Add error message to store and sync to database
+          addMessage(chatId, errorMessage)
+          syncMessage(errorMessage)
+
+          // Update local state from store
+          setMessages(getMessages(chatId))
+
           setStreamingMessage('')
           setIsStreaming(false)
         }
@@ -527,13 +631,32 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
             }
             syncChat(updatedChat)
           }
-
           setMessages(getMessages(chatId))
           setStreamingMessage('')
           setIsStreaming(false)
         },
-        (error) => {
+        async (error) => {
           console.error('❌ Retry streaming error: ', error)
+
+          // Create error message for assistant message retry failures
+          const errorMessage: MessageType = {
+            id: uuid(),
+            role: 'assistant',
+            content: error,
+            isError: true,
+            createdAt: new Date(),
+            userId: '',
+            chatId: chatId,
+            modelId: retryModelId,
+          }
+
+          // Add error message to store and sync to database
+          addMessage(chatId, errorMessage)
+          syncMessage(errorMessage)
+
+          // Update local state from store
+          setMessages(getMessages(chatId))
+
           setStreamingMessage('')
           setIsStreaming(false)
         }
