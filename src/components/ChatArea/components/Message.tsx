@@ -13,8 +13,6 @@ import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 
-import 'highlight.js/styles/github-dark.css'
-import 'katex/dist/katex.min.css'
 import './message.css'
 
 import { Check, ClipboardCopy, Copy, Edit, ExternalLink, Info, RefreshCcw, Sparkles } from 'lucide-react'
@@ -37,13 +35,13 @@ import { getModelName } from '~/utils/get-model-name'
 import type { Message as MessageType } from '@prisma/client'
 import { MODELS, type ModelsDevelopers, type ModelsIds } from '~/types/models'
 
-const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl px-4 py-3 text-sm', {
+const messageVariants = cva('group relative flex flex-col gap-1 rounded-2xl text-sm', {
   variants: {
     variant: {
-      user: 'max-w-[70%] self-end bg-primary',
+      user: 'max-w-[70%] self-end bg-primary px-4 py-3',
       // user: 'max-w-[70%] self-end bg-border/80', boring theme
       assistant: 'max-w-full self-start bg-transparent',
-      error: 'mt-2 max-w-full self-start border border-destructive/20 bg-destructive/10',
+      error: 'mt-2 max-w-full self-start border border-destructive/20 bg-destructive/10 px-4 py-3',
     },
   },
   defaultVariants: {
@@ -90,9 +88,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
       <div className='group/code relative my-4 overflow-hidden rounded-lg border bg-muted/50'>
         {/* Code header with language and copy button */}
         <div className='flex items-center justify-between border-b bg-muted/80 px-4 py-2'>
-          <span className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
-            {language || 'code'}
-          </span>
+          <span className='font-medium text-muted-foreground text-xs tracking-wide'>{language || 'code'}</span>
           <button
             type='button'
             onClick={copyCode}
@@ -346,7 +342,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
               'data-[role=user]:-bottom-11 sm:data-[role=user]:-bottom-10',
               'data-[role=user]:right-0 data-[role=user]:flex-row data-[role=user]:self-end',
               // Position logic: error takes precedence over role
-              message.isError ? 'left-0' : message.role === 'assistant' ? 'left-3' : '',
+              message.isError ? '-left-2' : message.role === 'assistant' ? 'left-0' : '',
 
               isStreaming ? 'pointer-events-none opacity-0' : 'opacity-0 group-hover:opacity-100'
             )}
