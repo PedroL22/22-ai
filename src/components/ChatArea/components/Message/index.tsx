@@ -138,29 +138,29 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
           </h4>
         ),
         ul: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <ul className='my-1 ml-4 list-disc space-y-0.5 text-base' {...props}>
+          <ul className='my-1 ml-4 list-disc space-y-0.5 text-sm' {...props}>
             {children}
           </ul>
         ),
         ol: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <ol className='my-1 ml-4 list-decimal space-y-0.5 text-base' {...props}>
+          <ol className='my-1 ml-4 list-decimal space-y-0.5 text-sm' {...props}>
             {children}
           </ol>
         ),
         li: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <li className='text-base leading-relaxed' {...props}>
+          <li className='text-sm leading-relaxed' {...props}>
             {children}
           </li>
         ),
         p: ({ children, ...props }: { children?: ReactNode; [key: string]: any }) => (
-          <p className='my-1 text-base leading-relaxed' {...props}>
+          <p className='my-1 text-sm leading-relaxed' {...props}>
             {children}
           </p>
         ),
         div: ({ className, children, ...props }: { className?: string; children?: ReactNode; [key: string]: any }) => {
           if (className?.includes('math-display')) {
             return (
-              <div className='my-2 overflow-x-auto text-center' {...props}>
+              <div className='my-2 overflow-x-auto text-center text-sm' {...props}>
                 {children}
               </div>
             )
@@ -175,7 +175,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
         input: ({ type, checked, ...props }: { type?: string; checked?: boolean; [key: string]: any }) => {
           if (type === 'checkbox') {
             return (
-              <input type='checkbox' checked={checked} disabled className='mr-2 cursor-default text-base' {...props} />
+              <input type='checkbox' checked={checked} disabled className='mr-2 cursor-default text-sm' {...props} />
             )
           }
           return <input type={type} {...props} />

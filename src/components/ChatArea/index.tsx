@@ -271,7 +271,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       setIsStreaming(true)
       setStreamingMessage('')
-      // limpar buffer antes de iniciar
+      // clean the buffer before starting the streaming
       bufferRef.current = ''
 
       await createStreamingChatCompletion(
@@ -279,7 +279,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         selectedModelId,
         (chunk) => {
           if (chunk.type === 'chunk' && chunk.content) {
-            // usar buffer em vez de setStreamingMessage direto
+            // use buffer instead of setStreamingMessage directly
             bufferRef.current += chunk.content
             flushBuffer()
           }
@@ -310,7 +310,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
           setMessages(getMessages(currentChatId!))
 
-          // cleanup do throttle na finalização
+          // throttle cleanup on completion
           flushBuffer.cancel()
           bufferRef.current = ''
           setStreamingMessage('')
@@ -335,7 +335,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
           setMessages(getMessages(currentChatId!))
 
-          // cleanup do throttle no erro
+          // throttle cleanup on error
           flushBuffer.cancel()
           bufferRef.current = ''
           setStreamingMessage('')
@@ -363,7 +363,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         setMessages(getMessages(chatId))
       }
 
-      // cleanup do throttle no erro
+      // throttle cleanup on error
       flushBuffer.cancel()
       bufferRef.current = ''
       setStreamingMessage('')
@@ -704,7 +704,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       <div
         ref={chatContainerRef}
-        className='scrollbar-hide w-full max-w-[768px] flex-1 space-y-10 overflow-y-auto overscroll-contain px-4 md:px-4 [&:not(*:is(@supports(-moz-appearance:none)))]:py-36 sm:[&:not(*:is(@supports(-moz-appearance:none)))]:py-38 [@supports(-moz-appearance:none)]:py-42 sm:[@supports(-moz-appearance:none)]:py-44'
+        className='scrollbar-hide w-full max-w-[768px] flex-1 space-y-10 overflow-y-auto overscroll-contain px-6 md:px-4 [&:not(*:is(@supports(-moz-appearance:none)))]:py-36 sm:[&:not(*:is(@supports(-moz-appearance:none)))]:py-38 [@supports(-moz-appearance:none)]:py-42 sm:[@supports(-moz-appearance:none)]:py-44'
       >
         {messages.length === 0 && !isStreaming ? (
           <div className='flex items-center justify-center pb-4 sm:h-full sm:pb-0'>
