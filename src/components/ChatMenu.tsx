@@ -1,5 +1,6 @@
 'use client'
 
+import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { type MouseEvent, useEffect, useRef, useState } from 'react'
 
@@ -37,7 +38,8 @@ export const ChatMenu = ({
   isShared = false,
   isSelected = false,
 }: ChatMenuProps) => {
-  const { removeChat, pinChat, shareChat, renameChat } = useChatStore()
+  const { isSignedIn } = useUser()
+  const { removeChat, pinChat, shareChat, renameChat, chatsDisplayMode } = useChatStore()
   const [isRenaming, setIsRenaming] = useState(false)
   const [newTitle, setNewTitle] = useState(chatTitle || '')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -126,15 +128,21 @@ export const ChatMenu = ({
     try {
       renameChat(chatId, newTitle.trim())
 
-      await renameChatMutation.mutateAsync({
-        chatId,
-        newTitle: newTitle.trim(),
-      })
+      // Only sync to server if user is authenticated and we're in synced mode
+      if (isSignedIn && chatsDisplayMode === 'synced') {
+        await renameChatMutation.mutateAsync({
+          chatId,
+          newTitle: newTitle.trim(),
+        })
+      }
 
       setIsRenaming(false)
     } catch (error) {
       console.error('❌ Failed to rename chat: ', error)
-      renameChat(chatId, chatTitle || '')
+      // Revert local change if server sync failed
+      if (isSignedIn && chatsDisplayMode === 'synced') {
+        renameChat(chatId, chatTitle || '')
+      }
     }
   }
 
