@@ -30,11 +30,20 @@ export const metadata: Metadata = {
     siteName: '22AI',
     title: '22AI',
     description: 'T3 Chat clone for cloneathon. I really like the number 22.',
+    images: [
+      {
+        url: '/images/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: '22AI - T3 Chat Clone',
+      },
+    ],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: '22AI',
     description: 'T3 Chat clone for cloneathon. I really like the number 22.',
+    images: ['/images/og-image.png'],
   },
 }
 
@@ -70,7 +79,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           <meta name='msapplication-TileColor' content='#7c3aed' />
           <meta name='msapplication-tap-highlight' content='no' />
 
-          <link rel='apple-touch-icon' href='/images/icons/logo.svg' />
+          <link rel='apple-touch-icon' href='/images/icons/app-icon.png' />
           <link rel='icon' type='image/svg+xml' href='/images/icons/logo.svg' />
           <link rel='manifest' href='/manifest.json' />
           <link rel='mask-icon' href='/images/icons/logo.svg' color='#000000' />
