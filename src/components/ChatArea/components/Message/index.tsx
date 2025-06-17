@@ -57,7 +57,7 @@ type MessageProps = {
   isStreaming?: boolean
   onRetry?: (messageIndex: number, modelId?: ModelsIds) => void
   onEdit?: (messageIndex: number, newContent: string) => void
-  onBranch?: (messageIndex: number) => void
+  onBranch?: (messageIndex: number, modelId?: ModelsIds) => void
 }
 
 export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, onBranch }: MessageProps) => {
@@ -178,6 +178,12 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
     }
   }
 
+  const handleBranch = (modelId?: ModelsIds) => {
+    if (onBranch) {
+      onBranch(messageIndex, modelId)
+    }
+  }
+
   const handleEdit = () => {
     if (onEdit && editContent.trim() !== message.content) {
       onEdit(messageIndex, editContent.trim())
@@ -252,8 +258,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
               'data-[role=user]:-bottom-11 sm:data-[role=user]:-bottom-10',
               'data-[role=user]:right-0 data-[role=user]:flex-row data-[role=user]:self-end',
               // Position logic: error takes precedence over role
-              message.isError ? '-left-1' : message.role === 'assistant' ? '-left-1' : '',
-
+              (message.isError || message.role === 'assistant') && '-left-1',
               isStreaming ? 'pointer-events-none opacity-0' : 'opacity-0 group-hover:opacity-100'
             )}
           >
@@ -325,15 +330,57 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
             )}
 
             {!message.isError && message.role === 'assistant' && onBranch && (
-              <Button
-                variant='ghost'
-                title='Branch from here'
-                data-role={message.role}
-                className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
-                onClick={() => onBranch(messageIndex)}
-              >
-                <GitBranch className='size-4' />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    title='Branch from here'
+                    data-role={message.role}
+                    className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+                  >
+                    <GitBranch className='size-4' />
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent side='top'>
+                  <DropdownMenuItem
+                    className='flex cursor-pointer items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'
+                    onClick={() => handleBranch()}
+                  >
+                    <GitBranch className='size-3' /> <span className='font-medium'>Branch same model</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  {MODELS.map((model) => (
+                    <DropdownMenuItem
+                      key={model.id}
+                      className='flex items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
+                      onClick={() => handleBranch(model.id)}
+                    >
+                      <div className='flex items-center space-x-2'>
+                        {developerIcon(model.developer)}
+
+                        <div className='flex w-full items-center justify-between space-x-4'>
+                          <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>
+                            {model.name}
+                          </span>
+
+                          <Tooltip>
+                            <TooltipTrigger className='shrink-0 cursor-pointer'>
+                              <Info className='size-3' />
+                            </TooltipTrigger>
+
+                            <TooltipContent>
+                              <p className='max-w-[300px]'>{model.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             <Button

@@ -48,6 +48,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     setIsStreaming,
     renameChat,
     selectedModelId,
+    setSelectedModelId,
     removeMessagesFromIndex,
     replaceMessage,
     branchChat,
@@ -729,7 +730,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
   }
 
-  const handleBranch = async (messageIndex: number) => {
+  const handleBranch = async (messageIndex: number, modelId?: ModelsIds) => {
     if (!chatId) return
 
     try {
@@ -744,6 +745,10 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       }
 
       router.push(`/${newChatId}`)
+
+      if (modelId) {
+        setSelectedModelId(modelId)
+      }
     } catch (error) {
       console.error('❌ Failed to branch chat: ', error)
     }
