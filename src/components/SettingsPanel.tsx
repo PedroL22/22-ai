@@ -34,7 +34,6 @@ export const SettingsPanel = () => {
 
         <div className='space-y-8'>
           {/* DB sync section */}
-
           <motion.div
             key='db-sync'
             initial={{ opacity: 0 }}
@@ -70,6 +69,75 @@ export const SettingsPanel = () => {
                 <Link href='/sign-in'>Sign in to sync</Link>
               </Button>
             )}
+          </motion.div>
+
+          {/* Keyboard Shortcuts section */}
+          <motion.div
+            key='keyboard-shortcuts'
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: 'tween', duration: 0.15 }}
+            className='hidden md:block'
+          >
+            <div className='flex items-center space-x-2'>
+              <div className='font-medium text-sm'>Keyboard Shortcuts</div>
+
+              <div className='flex size-4 items-center justify-center rounded-full bg-primary/20'>
+                <div className='size-2 rounded-full bg-primary' />
+              </div>
+            </div>
+
+            <div className='mt-1 text-muted-foreground text-xs leading-relaxed'>
+              Speed up your workflow with these keyboard shortcuts.
+            </div>
+
+            <div className='mt-3 space-y-2'>
+              <div className='flex items-center justify-between'>
+                <span className='text-sm'>Search chats</span>
+                <div className='flex gap-1'>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>
+                    {typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC')
+                      ? '⌘'
+                      : 'Ctrl'}
+                  </kbd>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>K</kbd>
+                </div>
+              </div>
+
+              <div className='flex items-center justify-between'>
+                <span className='text-sm'>New chat</span>
+                <div className='flex gap-1'>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>
+                    {typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC')
+                      ? '⌘'
+                      : 'Ctrl'}
+                  </kbd>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>Shift</kbd>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>O</kbd>
+                </div>
+              </div>
+
+              <div className='flex items-center justify-between'>
+                <span className='text-sm'>Toggle sidebar</span>
+                <div className='flex gap-1'>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>
+                    {typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC')
+                      ? '⌘'
+                      : 'Ctrl'}
+                  </kbd>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>B</kbd>
+                </div>
+              </div>
+
+              <div className='flex items-center justify-between'>
+                <span className='text-sm'>New line in message</span>
+                <div className='flex gap-1'>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>Shift</kbd>
+                  <kbd className='rounded bg-muted px-2 py-1 font-mono text-xs'>Enter</kbd>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
           {/* Language section - soon 🚧 */}
