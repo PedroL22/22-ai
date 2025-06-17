@@ -19,6 +19,7 @@ import { useChatStore } from '~/stores/useChatStore'
 import { createStreamingChatCompletion } from '~/lib/streaming'
 import { useRealtimeSync } from '~/lib/useRealtimeSync'
 import { api } from '~/trpc/react'
+import { createSystemPrompt } from '~/utils/system-prompt'
 
 import type { Chat as ChatType, Message as MessageType } from '@prisma/client'
 import type { ModelsIds } from '~/types/models'
@@ -264,8 +265,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         syncChat(updatedChat)
       }
 
-      const allMessages = [...messages, tempUserMessage].map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
+      const allMessages = [createSystemPrompt(), ...messages, tempUserMessage].map((msg) => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content,
       }))
 
@@ -417,8 +418,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
 
     try {
-      const allMessages = updatedMessages.map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
+      const allMessages = [createSystemPrompt(), ...updatedMessages].map((msg) => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content,
       }))
 
@@ -539,8 +540,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         setMessages(getMessages(chatId))
       }
 
-      const contextMessages = messages.slice(0, messageIndex + 1).map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
+      const contextMessages = [createSystemPrompt(), ...messages.slice(0, messageIndex + 1)].map((msg) => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content,
       }))
 
@@ -617,8 +618,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       setMessages(getMessages(chatId))
 
-      const contextMessages = messages.slice(0, messageIndex).map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
+      const contextMessages = [createSystemPrompt(), ...messages.slice(0, messageIndex)].map((msg) => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content,
       }))
 
