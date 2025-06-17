@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 
-import { ArrowDown, ArrowUp, Share2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Loader2, Share2 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 import { EmptyState } from './components/EmptyState'
@@ -33,6 +33,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const [messages, setMessages] = useState<MessageType[]>([])
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [userScrolledUp, setUserScrolledUp] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(!!chatId)
 
   const { isSignedIn, isLoaded } = useUser()
 
@@ -52,8 +53,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     replaceMessage,
   } = useChatStore()
   const currentChat = chatId ? chats.find((chat) => chat.id === chatId) : null
-
-  const { data: dbMessages } = api.chat.getChatMessages.useQuery(
+  const { data: dbMessages, isLoading: isDbMessagesLoading } = api.chat.getChatMessages.useQuery(
     { chatId: chatId! },
     {
       enabled: !!chatId && !currentChat && isSignedIn && isLoaded,
@@ -64,14 +64,14 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     { chatId: chatId! },
     { enabled: !!chatId && isSignedIn && isLoaded }
   )
-  const { data: sharedChatData } = api.chat.getSharedChat.useQuery(
+  const { data: sharedChatData, isLoading: isSharedChatLoading } = api.chat.getSharedChat.useQuery(
     { chatId: chatId! },
     {
       enabled: !!chatId && !currentChat,
       retry: false,
     }
   )
-  const { data: sharedMessages } = api.chat.getSharedChatMessages.useQuery(
+  const { data: sharedMessages, isLoading: isSharedMessagesLoading } = api.chat.getSharedChatMessages.useQuery(
     { chatId: chatId! },
     {
       enabled: !!chatId && (sharedChatData?.isShared === true || !isSignedIn),
@@ -99,10 +99,20 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }, 200)
   ).current
 
+  // Reset loading state when chatId changes
+  useEffect(() => {
+    if (chatId) {
+      setIsInitialLoading(true)
+    } else {
+      setIsInitialLoading(false)
+    }
+  }, [chatId])
+
   useEffect(() => {
     if (chatId) {
       if (sharedMessages) {
         setMessages(sharedMessages)
+        setIsInitialLoading(false)
       } else if (dbMessages && !currentChat) {
         const transformedMessages: MessageType[] = dbMessages.map((msg) => ({
           ...msg,
@@ -112,14 +122,21 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           userId: '',
         }))
         setMessages(transformedMessages)
+        setIsInitialLoading(false)
       } else if (currentChat) {
         const storedMessages = getMessages(chatId)
         setMessages(storedMessages)
+        setIsInitialLoading(false)
       } else {
-        setMessages([])
+        // Still loading or no messages found
+        if (!isDbMessagesLoading && !isSharedMessagesLoading && !isSharedChatLoading) {
+          setMessages([])
+          setIsInitialLoading(false)
+        }
       }
     } else {
       setMessages([])
+      setIsInitialLoading(false)
     }
 
     // Only auto-scroll on initial load
@@ -137,7 +154,16 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         setUserScrolledUp(false)
       }
     }, 100)
-  }, [chatId, sharedMessages, dbMessages, currentChat, userScrolledUp])
+  }, [
+    chatId,
+    sharedMessages,
+    dbMessages,
+    currentChat,
+    userScrolledUp,
+    isDbMessagesLoading,
+    isSharedMessagesLoading,
+    isSharedChatLoading,
+  ])
 
   useEffect(() => {
     // Only auto-scroll during streaming if user hasn't manually scrolled up
@@ -721,7 +747,18 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       >
         {messages.length === 0 && !isStreaming ? (
           <div className='flex items-center justify-center pb-4 sm:h-full sm:pb-0'>
-            <EmptyState onSuggestionClickAction={handleSuggestionClick} />
+            {isInitialLoading ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className='flex flex-col items-center justify-center'
+              >
+                <Loader2 className='size-8 animate-spin text-muted-foreground' />
+              </motion.div>
+            ) : (
+              <EmptyState onSuggestionClickAction={handleSuggestionClick} />
+            )}
           </div>
         ) : (
           <AnimatePresence initial={false}>
