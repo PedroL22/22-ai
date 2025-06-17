@@ -233,6 +233,7 @@ export const ChatMenu = ({
   return (
     <>
       <div
+        title={chatTitle || 'Untitled'}
         aria-label={`Chat: ${chatTitle || 'Untitled'}`}
         className={cn(
           'group flex w-full cursor-pointer items-center justify-end gap-3 rounded-lg p-3 transition-all ease-in hover:bg-accent',
