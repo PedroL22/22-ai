@@ -705,7 +705,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
 
       <div
         ref={chatContainerRef}
-        className='scrollbar-hide w-full max-w-[768px] flex-1 space-y-10 overflow-y-auto overscroll-contain px-6 md:px-4 [&:not(*:is(@supports(-moz-appearance:none)))]:py-36 sm:[&:not(*:is(@supports(-moz-appearance:none)))]:py-38 [@supports(-moz-appearance:none)]:py-42 sm:[@supports(-moz-appearance:none)]:py-44'
+        className='scrollbar-hide w-full max-w-[768px] flex-1 space-y-10 overflow-y-auto overscroll-contain px-6 lg:px-4 [&:not(*:is(@supports(-moz-appearance:none)))]:py-36 sm:[&:not(*:is(@supports(-moz-appearance:none)))]:py-38 [@supports(-moz-appearance:none)]:py-42 sm:[@supports(-moz-appearance:none)]:py-44'
       >
         {messages.length === 0 && !isStreaming ? (
           <div className='flex items-center justify-center pb-4 sm:h-full sm:pb-0'>
@@ -796,7 +796,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
         )}
       </AnimatePresence>
 
-      <div className='-translate-x-1/2 absolute bottom-0 left-1/2 flex w-full max-w-[calc(100%-1rem)] flex-col gap-2 rounded-t-xl border-6 border-zinc-600/5 border-b-0 bg-border/80 pt-2 pr-2 pb-4 pl-1 shadow-2xl backdrop-blur-sm md:max-w-[768px] dark:border-background/10 dark:bg-zinc-700/80'>
+      <div className='-translate-x-1/2 absolute bottom-0 left-1/2 flex w-full max-w-[calc(100%-1rem)] flex-col gap-2 rounded-t-xl border-6 border-zinc-600/5 border-b-0 bg-border/80 pt-2 pr-2 pb-4 pl-1 shadow-2xl backdrop-blur-sm lg:max-w-[768px] dark:border-background/10 dark:bg-zinc-700/80'>
         <div className='relative flex w-full items-center space-x-2'>
           <Textarea
             id='chat-message-input'
