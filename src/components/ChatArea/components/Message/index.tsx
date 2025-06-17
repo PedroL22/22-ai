@@ -2,7 +2,6 @@
 
 import { cva } from 'class-variance-authority'
 import { AnimatePresence, motion } from 'motion/react'
-import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
@@ -15,7 +14,7 @@ import remarkMath from 'remark-math'
 
 import './index.css'
 
-import { Check, Copy, Edit, GitBranch, Info, RefreshCcw, Sparkles } from 'lucide-react'
+import { Check, Copy, Edit, GitBranch, Info, RefreshCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import {
@@ -33,10 +32,11 @@ import { MarkdownTable } from './components/MarkdownTable'
 
 import { cn } from '~/lib/utils'
 import { formatMessageDateForChatHistory } from '~/utils/format-date-for-chat-history'
+import { getDeveloperIcon } from '~/utils/get-developer-icon'
 import { getModelName } from '~/utils/get-model-name'
 
 import type { Message as MessageType } from '@prisma/client'
-import { MODELS, type ModelsDevelopers, type ModelsIds } from '~/types/models'
+import { MODELS, type ModelsIds } from '~/types/models'
 
 const messageVariants = cva('group relative flex flex-col gap-0.5 rounded-2xl text-sm', {
   variants: {
@@ -196,18 +196,6 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
     setIsEditing(false)
   }
 
-  const developerIcon = (developer: ModelsDevelopers) => {
-    switch (developer) {
-      case 'Google':
-        return <Image src='/images/icons/gemini.svg' alt='Gemini Logo' width={16} height={16} className='size-4' />
-      case 'DeepSeek':
-        return <Image src='/images/icons/deepseek.svg' alt='DeepSeek Logo' width={16} height={16} className='size-4' />
-
-      default:
-        return <Sparkles className='size-4 text-zinc-400' />
-    }
-  }
-
   return (
     <>
       {isEditing && message.role === 'user' ? (
@@ -294,7 +282,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
                     onClick={() => handleRetry(model.id)}
                   >
                     <div className='flex items-center space-x-2'>
-                      {developerIcon(model.developer)}
+                      {getDeveloperIcon(model.developer)}
 
                       <div className='flex w-full items-center justify-between space-x-4'>
                         <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>
@@ -359,7 +347,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
                       onClick={() => handleBranch(model.id)}
                     >
                       <div className='flex items-center space-x-2'>
-                        {developerIcon(model.developer)}
+                        {getDeveloperIcon(model.developer)}
 
                         <div className='flex w-full items-center justify-between space-x-4'>
                           <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>

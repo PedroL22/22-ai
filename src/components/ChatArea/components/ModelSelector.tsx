@@ -1,6 +1,4 @@
 'use client'
-
-import Image from 'next/image'
 import { useState } from 'react'
 
 import { Check, ChevronsUpDown, Info, Sparkles } from 'lucide-react'
@@ -12,9 +10,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { useChatStore } from '~/stores/useChatStore'
 
 import { cn } from '~/lib/utils'
+import { getDeveloperIcon } from '~/utils/get-developer-icon'
 import { getModelName } from '~/utils/get-model-name'
 
-import { MODELS, type ModelsDevelopers, type ModelsIds } from '~/types/models'
+import { MODELS, type ModelsIds } from '~/types/models'
 
 export const ModelSelector = () => {
   const [open, setOpen] = useState(false)
@@ -22,18 +21,6 @@ export const ModelSelector = () => {
   const setSelectedModelId = useChatStore((state) => state.setSelectedModelId)
 
   const selectedModel = MODELS.find((model) => model.id === selectedModelId)
-
-  const developerIcon = (developer: ModelsDevelopers) => {
-    switch (developer) {
-      case 'Google':
-        return <Image src='/images/icons/gemini.svg' alt='Gemini Logo' width={16} height={16} className='size-4' />
-      case 'DeepSeek':
-        return <Image src='/images/icons/deepseek.svg' alt='DeepSeek Logo' width={16} height={16} className='size-4' />
-
-      default:
-        return <Sparkles className='size-4 text-zinc-400' />
-    }
-  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -44,7 +31,7 @@ export const ModelSelector = () => {
           className='mx-1 justify-between self-start rounded-sm border-0 bg-transparent px-2 py-1 text-muted-foreground text-sm shadow-none transition-all ease-in hover:bg-muted/50 hover:text-muted-foreground'
         >
           <div className='flex items-center gap-2'>
-            {selectedModel ? developerIcon(selectedModel.developer) : <Sparkles className='size-3' />}
+            {selectedModel ? getDeveloperIcon(selectedModel.developer) : <Sparkles className='size-3' />}
 
             <span className='truncate'>{selectedModel ? selectedModel.name : getModelName(selectedModelId)}</span>
           </div>
@@ -72,7 +59,7 @@ export const ModelSelector = () => {
                   className='flex items-center justify-between py-0 transition-all ease-in sm:space-y-1 sm:px-3 sm:py-2'
                 >
                   <div className='flex items-center space-x-2'>
-                    {developerIcon(model.developer)}
+                    {getDeveloperIcon(model.developer)}
 
                     <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>{model.name}</span>
 

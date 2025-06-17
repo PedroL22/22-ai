@@ -3,10 +3,20 @@ export type ModelsIds =
   | 'google/gemma-3-27b-it:free'
   | 'deepseek/deepseek-chat-v3-0324:free'
   | 'deepseek/deepseek-r1-0528:free'
+  | 'meta-llama/llama-4-maverick:free'
+  | 'meta-llama/llama-4-scout:free'
+  | 'meta-llama/llama-3.3-70b-instruct:free'
 
-export type ModelsNames = 'Gemini 2.0 Flash Experimental' | 'Gemma 3 27B' | 'DeepSeek V3 0324' | 'R1 0528'
+export type ModelsNames =
+  | 'Gemini 2.0 Flash Experimental'
+  | 'Gemma 3 27B'
+  | 'DeepSeek V3 0324'
+  | 'R1 0528'
+  | 'Llama 4 Maverick'
+  | 'Llama 4 Scout'
+  | 'Llama 3.3 70B Instruct'
 
-export type ModelsDevelopers = 'Google' | 'DeepSeek'
+export type ModelsDevelopers = 'Google' | 'DeepSeek' | 'Meta'
 
 export type Model = {
   id: ModelsIds
@@ -43,5 +53,26 @@ export const MODELS: Model[] = [
     developer: 'DeepSeek',
     description:
       "May 28th update to the original DeepSeek R1 Performance on par with OpenAI o1, but open-sourced and with fully open reasoning tokens. It's 671B parameters in size, with 37B active in an inference pass.",
+  },
+  {
+    id: 'meta-llama/llama-4-maverick:free',
+    name: 'Llama 4 Maverick',
+    developer: 'Meta',
+    description:
+      'Llama 4 Maverick 17B Instruct (128E) is a high-capacity multimodal language model from Meta, built on a mixture-of-experts (MoE) architecture with 128 experts and 17 billion active parameters per forward pass (400B total). It supports multilingual text and image input, and produces multilingual text and code output across 12 supported languages. Optimized for vision-language tasks, Maverick is instruction-tuned for assistant-like behavior, image reasoning, and general-purpose multimodal interaction.',
+  },
+  {
+    id: 'meta-llama/llama-4-scout:free',
+    name: 'Llama 4 Scout',
+    developer: 'Meta',
+    description:
+      'Llama 4 Scout 17B Instruct (16E) is a mixture-of-experts (MoE) language model developed by Meta, activating 17 billion parameters out of a total of 109B. It supports native multimodal input (text and image) and multilingual output (text and code) across 12 supported languages. Designed for assistant-style interaction and visual reasoning, Scout uses 16 experts per forward pass and features a context length of 10 million tokens, with a training corpus of ~40 trillion tokens.',
+  },
+  {
+    id: 'meta-llama/llama-3.3-70b-instruct:free',
+    name: 'Llama 3.3 70B Instruct',
+    developer: 'Meta',
+    description:
+      'The Meta Llama 3.3 multilingual large language model (LLM) is a pre-trained and instruction tuned generative model in 70B (text in/text out). The Llama 3.3 instruction tuned text only model is optimized for multilingual dialogue use cases and outperforms many of the available open source and closed chat models on common industry benchmarks.',
   },
 ]
