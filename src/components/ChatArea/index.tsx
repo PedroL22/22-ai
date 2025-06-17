@@ -33,7 +33,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
   const [messages, setMessages] = useState<MessageType[]>([])
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [userScrolledUp, setUserScrolledUp] = useState(false)
-  const [isInitialLoading, setIsInitialLoading] = useState(!!chatId)
 
   const { isSignedIn, isLoaded } = useUser()
 
@@ -51,6 +50,8 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     selectedModelId,
     removeMessagesFromIndex,
     replaceMessage,
+    isInitialLoading,
+    setIsInitialLoading,
   } = useChatStore()
   const currentChat = chatId ? chats.find((chat) => chat.id === chatId) : null
   const { data: dbMessages, isLoading: isDbMessagesLoading } = api.chat.getChatMessages.useQuery(

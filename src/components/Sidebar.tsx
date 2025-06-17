@@ -51,7 +51,7 @@ type SidebarProps = {
  */
 export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
-  const { chats: localChats, clearChats, chatsDisplayMode, isSyncing } = useChatStore()
+  const { chats: localChats, clearChats, chatsDisplayMode, isSyncing, isInitialLoading } = useChatStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
 
@@ -114,8 +114,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     clearChats()
 
     await signOut()
-
-    location.reload()
   }
 
   return (
@@ -269,15 +267,18 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 </Button>
 
                 <div className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'>
-                  {(!isSignedIn || chatsDisplayMode === 'local') && !isSyncing && sortedChats.length === 0 ? (
+                  {(!isSignedIn || chatsDisplayMode === 'local') &&
+                  !isSyncing &&
+                  sortedChats.length === 0 &&
+                  !isInitialLoading ? (
                     <div className='flex size-full items-center justify-center'>
                       <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
                     </div>
-                  ) : isSyncing ? (
+                  ) : isSyncing || isInitialLoading ? (
                     <div className='flex size-full items-center justify-center'>
                       <Loader2 className='size-4 animate-spin' />
                     </div>
-                  ) : sortedChats.length > 0 ? (
+                  ) : (
                     <div className='w-full space-y-4'>
                       {(Object.keys(groupedChats) as Array<keyof typeof groupedChats>).map((groupKey) => {
                         const group = groupedChats[groupKey]
@@ -311,10 +312,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                           </div>
                         )
                       })}
-                    </div>
-                  ) : (
-                    <div className='flex size-full items-center justify-center'>
-                      <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
                     </div>
                   )}
                 </div>

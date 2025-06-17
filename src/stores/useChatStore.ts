@@ -40,6 +40,8 @@ type ChatStore = {
   chatsDisplayMode: 'local' | 'synced'
   isSyncing: boolean
   setSyncing: (syncing: boolean) => void
+  isInitialLoading: boolean
+  setIsInitialLoading: (loading: boolean) => void
 }
 
 export const useChatStore = create<ChatStore>()(
@@ -54,11 +56,13 @@ export const useChatStore = create<ChatStore>()(
       isStreaming: false,
       chatsDisplayMode: 'local',
       isSyncing: false,
+      isInitialLoading: false,
       setStreamingMessage: (message) =>
         set((state) => ({
           streamingMessage: typeof message === 'function' ? message(state.streamingMessage) : message,
         })),
       setIsStreaming: (streaming) => set({ isStreaming: streaming }),
+      setIsInitialLoading: (loading) => set({ isInitialLoading: loading }),
       addChat: (chat) =>
         set((state) => ({
           chats: [...state.chats, { ...chat, messages: [] }],
