@@ -12,6 +12,8 @@ export const getDeveloperIcon = (developer: ModelsDevelopers) => {
       return <Image src='/images/icons/deepseek.svg' alt='DeepSeek Logo' width={16} height={16} className='size-4' />
     case 'Meta':
       return <Image src='/images/icons/meta.svg' alt='Meta Logo' width={16} height={16} className='size-4' />
+    case 'Qwen':
+      return <Image src='/images/icons/qwen.svg' alt='Qwen Logo' width={16} height={16} className='size-4' />
 
     default:
       return <Sparkles className='size-4 text-zinc-400' />

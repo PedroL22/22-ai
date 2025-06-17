@@ -44,7 +44,7 @@ export const ModelSelector = () => {
         <Command>
           <CommandInput placeholder='Search models...' />
 
-          <CommandList className='scrollbar-hide'>
+          <CommandList className='max-h-full'>
             <CommandEmpty>No models found.</CommandEmpty>
 
             <CommandGroup>

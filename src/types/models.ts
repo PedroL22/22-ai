@@ -6,17 +6,23 @@ export type ModelsIds =
   | 'meta-llama/llama-4-maverick:free'
   | 'meta-llama/llama-4-scout:free'
   | 'meta-llama/llama-3.3-70b-instruct:free'
+  | 'qwen/qwen3-32b:free'
+  | 'qwen/qwen2.5-vl-72b-instruct:free'
+  | 'qwen/qwen-2.5-coder-32b-instruct:free'
 
 export type ModelsNames =
   | 'Gemini 2.0 Flash Experimental'
   | 'Gemma 3 27B'
   | 'DeepSeek V3 0324'
-  | 'R1 0528'
+  | 'DeepSeek R1 0528'
   | 'Llama 4 Maverick'
   | 'Llama 4 Scout'
   | 'Llama 3.3 70B Instruct'
+  | 'Qwen3 32B'
+  | 'Qwen2.5 VL 72B Instruct'
+  | 'Qwen2.5 Coder 32B Instruct'
 
-export type ModelsDevelopers = 'Google' | 'DeepSeek' | 'Meta'
+export type ModelsDevelopers = 'Google' | 'DeepSeek' | 'Meta' | 'Qwen'
 
 export type Model = {
   id: ModelsIds
@@ -49,7 +55,7 @@ export const MODELS: Model[] = [
   },
   {
     id: 'deepseek/deepseek-r1-0528:free',
-    name: 'R1 0528',
+    name: 'DeepSeek R1 0528',
     developer: 'DeepSeek',
     description:
       "May 28th update to the original DeepSeek R1 Performance on par with OpenAI o1, but open-sourced and with fully open reasoning tokens. It's 671B parameters in size, with 37B active in an inference pass.",
@@ -74,5 +80,26 @@ export const MODELS: Model[] = [
     developer: 'Meta',
     description:
       'The Meta Llama 3.3 multilingual large language model (LLM) is a pre-trained and instruction tuned generative model in 70B (text in/text out). The Llama 3.3 instruction tuned text only model is optimized for multilingual dialogue use cases and outperforms many of the available open source and closed chat models on common industry benchmarks.',
+  },
+  {
+    id: 'qwen/qwen3-32b:free',
+    name: 'Qwen3 32B',
+    developer: 'Qwen',
+    description:
+      'Qwen3-32B is a dense 32.8B parameter causal language model from the Qwen3 series, optimized for both complex reasoning and efficient dialogue. It supports seamless switching between a "thinking" mode for tasks like math, coding, and logical inference, and a "non-thinking" mode for faster, general-purpose conversation.',
+  },
+  {
+    id: 'qwen/qwen2.5-vl-72b-instruct:free',
+    name: 'Qwen2.5 VL 72B Instruct',
+    developer: 'Qwen',
+    description:
+      'Qwen2.5-VL is proficient in recognizing common objects such as flowers, birds, fish, and insects. It is also highly capable of analyzing texts, charts, icons, graphics, and layouts within images.',
+  },
+  {
+    id: 'qwen/qwen-2.5-coder-32b-instruct:free',
+    name: 'Qwen2.5 Coder 32B Instruct',
+    developer: 'Qwen',
+    description:
+      'Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen).',
   },
 ]
