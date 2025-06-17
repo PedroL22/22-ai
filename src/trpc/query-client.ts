@@ -7,8 +7,8 @@ export const createQueryClient = () =>
       queries: {
         // With SSR, we usually want to set some default staleTime
         // above 0 to avoid refetching immediately on the client
-        staleTime: 30 * 1000, // 30 seconds
-        refetchInterval: 60000, // 60 seconds
+        staleTime: 10 * 1000, // 10 seconds
+        refetchInterval: 1000 * 30, // 30 seconds
         retry: (failureCount, error) => {
           if ((error as any)?.data?.code === 'UNAUTHORIZED') {
             return false
