@@ -49,6 +49,7 @@ export const useRealtimeSync = () => {
             updatedAt: chat.updatedAt,
           },
         })
+
         console.log('✅ Chat synced to database: ', chat.id)
       } catch (error) {
         console.error('❌ Error syncing chat: ', error)

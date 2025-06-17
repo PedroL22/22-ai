@@ -1,3 +1,4 @@
+import { v4 as uuid } from 'uuid'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -32,6 +33,7 @@ type ChatStore = {
   clearMessages: (chatId: string) => void
   replaceMessage: (chatId: string, messageIndex: number, newMessage: MessageType) => void
   removeMessagesFromIndex: (chatId: string, messageIndex: number) => void
+  branchChat: (sourceChatId: string, fromMessageIndex: number) => { id: string; chat: ChatWithMessages }
   syncChatsFromDatabase: (chats: ChatWithMessages[]) => void
   moveDbChatsToLocal: (chats: ChatWithMessages[]) => void
   getLocalChatsForSync: () => ChatWithMessages[]
@@ -134,6 +136,43 @@ export const useChatStore = create<ChatStore>()(
               : chat
           ),
         })),
+      branchChat: (sourceChatId, fromMessageIndex) => {
+        const state = get()
+        const sourceChat = state.chats.find((chat) => chat.id === sourceChatId)
+
+        if (!sourceChat) {
+          throw new Error('Source chat not found')
+        }
+
+        // Create new chat with messages up to the branch point
+        const branchedMessages = sourceChat.messages.slice(0, fromMessageIndex + 1)
+        const newChatId = uuid()
+
+        const newChat: ChatType = {
+          id: newChatId,
+          title: `${sourceChat.title || 'Chat'} (Branch)`,
+          isPinned: false,
+          isShared: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: sourceChat.userId,
+        }
+
+        const newChatWithMessages = {
+          ...newChat,
+          messages: branchedMessages.map((msg) => ({
+            ...msg,
+            id: uuid(), // New IDs for branched messages
+            chatId: newChatId,
+          })),
+        }
+
+        set((state) => ({
+          chats: [...state.chats, newChatWithMessages],
+        }))
+
+        return { id: newChatId, chat: newChatWithMessages }
+      },
       syncChatsFromDatabase: (chats) => set({ chats, chatsDisplayMode: 'synced' }),
       moveDbChatsToLocal: (chats) => set({ chats, chatsDisplayMode: 'local' }),
       getLocalChatsForSync: () => {

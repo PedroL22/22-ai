@@ -15,7 +15,7 @@ import remarkMath from 'remark-math'
 
 import './index.css'
 
-import { Check, Copy, Edit, Info, RefreshCcw, Sparkles } from 'lucide-react'
+import { Check, Copy, Edit, GitBranch, Info, RefreshCcw, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import {
@@ -57,9 +57,10 @@ type MessageProps = {
   isStreaming?: boolean
   onRetry?: (messageIndex: number, modelId?: ModelsIds) => void
   onEdit?: (messageIndex: number, newContent: string) => void
+  onBranch?: (messageIndex: number) => void
 }
 
-export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }: MessageProps) => {
+export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, onBranch }: MessageProps) => {
   const [isCopied, setIsCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.content)
@@ -251,7 +252,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
               'data-[role=user]:-bottom-11 sm:data-[role=user]:-bottom-10',
               'data-[role=user]:right-0 data-[role=user]:flex-row data-[role=user]:self-end',
               // Position logic: error takes precedence over role
-              message.isError ? '-left-2' : message.role === 'assistant' ? 'left-0' : '',
+              message.isError ? '-left-1' : message.role === 'assistant' ? '-left-1' : '',
 
               isStreaming ? 'pointer-events-none opacity-0' : 'opacity-0 group-hover:opacity-100'
             )}
@@ -264,7 +265,7 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
                   variant='ghost'
                   title='Retry message'
                   data-role={message.role}
-                  className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+                  className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover</DropdownMenuContent>:bg-accent-foreground/5'
                   onClick={() => onRetry?.(messageIndex, message.modelId as ModelsIds)}
                 >
                   <RefreshCcw className='size-4' />
@@ -320,6 +321,18 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
                 onClick={() => setIsEditing(true)}
               >
                 <Edit className='size-4' />
+              </Button>
+            )}
+
+            {!message.isError && message.role === 'assistant' && onBranch && (
+              <Button
+                variant='ghost'
+                title='Branch from here'
+                data-role={message.role}
+                className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
+                onClick={() => onBranch(messageIndex)}
+              >
+                <GitBranch className='size-4' />
               </Button>
             )}
 

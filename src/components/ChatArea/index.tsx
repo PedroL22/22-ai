@@ -50,6 +50,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     selectedModelId,
     removeMessagesFromIndex,
     replaceMessage,
+    branchChat,
     isInitialLoading,
     setIsInitialLoading,
   } = useChatStore()
@@ -728,6 +729,26 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     }
   }
 
+  const handleBranch = async (messageIndex: number) => {
+    if (!chatId) return
+
+    try {
+      const { id: newChatId, chat: newChat } = branchChat(chatId, messageIndex)
+
+      // Sync the new branched chat to the database
+      await syncChat(newChat)
+
+      // Then sync all messages in the branched chat
+      for (const message of newChat.messages) {
+        await syncMessage(message)
+      }
+
+      router.push(`/${newChatId}`)
+    } catch (error) {
+      console.error('❌ Failed to branch chat: ', error)
+    }
+  }
+
   return (
     <div className='relative flex w-full flex-col items-center bg-accent'>
       {/* Shared indicator */}
@@ -773,12 +794,14 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                 layout='position'
                 className='flex flex-col'
               >
+                {' '}
                 <Message
                   message={msg}
                   messageIndex={index}
                   isStreaming={isStreaming}
                   onRetry={handleRetry}
                   onEdit={handleEdit}
+                  onBranch={handleBranch}
                 />
               </motion.div>
             ))}
@@ -803,6 +826,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
                   isStreaming={true}
                   onRetry={handleRetry}
                   onEdit={handleEdit}
+                  onBranch={handleBranch}
                 />
               </motion.div>
             )}
