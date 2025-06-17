@@ -122,11 +122,19 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       setMessages([])
     }
 
-    // Scroll automatically to the bottom when messages load
+    // Scroll automatically to the bottom when messages load (but not for empty state)
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      setShowScrollToBottom(false)
-      setUserScrolledUp(false)
+      const hasMessages =
+        chatId &&
+        ((sharedMessages && sharedMessages.length > 0) ||
+          (dbMessages && dbMessages.length > 0) ||
+          (currentChat && getMessages(chatId).length > 0))
+
+      if (hasMessages) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        setShowScrollToBottom(false)
+        setUserScrolledUp(false)
+      }
     }, 100)
   }, [chatId, sharedMessages, dbMessages, currentChat])
 
@@ -166,6 +174,12 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       flushBuffer.cancel()
     }
   }, [flushBuffer])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setShowScrollToBottom(false)
+    setUserScrolledUp(false)
+  }
 
   const handleSuggestionClick = (suggestion: string) => {
     if (isStreaming) return
@@ -370,12 +384,6 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       setStreamingMessage('')
       setIsStreaming(false)
     }
-  }
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    setShowScrollToBottom(false)
-    setUserScrolledUp(false)
   }
 
   const handleEdit = async (messageIndex: number, newContent: string) => {
