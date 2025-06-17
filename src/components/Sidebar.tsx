@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 
 import {
   ChevronDown,
@@ -40,24 +40,22 @@ import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
 import { getGroupLabel, groupChats } from '~/utils/group-chats'
-import { isMobile } from '~/utils/is-mobile'
 
 type SidebarProps = {
-  selectedChatId?: string | null
+  selectedChatId?: string | null | undefined
 }
 
 /**
  * Sidebar component that displays the chat list and user information.
  */
-export const Sidebar = ({ selectedChatId }: SidebarProps) => {
+const SidebarComponent = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
   const { chats: localChats, clearChats, chatsDisplayMode, isSyncing, isInitialLoading } = useChatStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
-
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
 
-  const chatsToDisplay = (() => {
+  const chatsToDisplay = useMemo(() => {
     if (!isSignedIn) {
       return localChats.map((chat) => ({ ...chat, isLocal: true }))
     }
@@ -69,30 +67,35 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
     // Fallback to local chats during sync
     return localChats.map((chat) => ({ ...chat, isLocal: true }))
-  })()
+  }, [isSignedIn, localChats, chatsDisplayMode])
 
-  const sortedChats = chatsToDisplay.sort((a, b) => {
-    const dateA = new Date(a.updatedAt).getTime()
-    const dateB = new Date(b.updatedAt).getTime()
-    return dateB - dateA
-  })
+  const sortedChats = useMemo(() => {
+    return chatsToDisplay.sort((a, b) => {
+      const dateA = new Date(a.updatedAt).getTime()
+      const dateB = new Date(b.updatedAt).getTime()
+      return dateB - dateA
+    })
+  }, [chatsToDisplay])
 
-  const groupedChats = groupChats(sortedChats)
-
+  const groupedChats = useMemo(() => groupChats(sortedChats), [sortedChats])
   const { theme, setTheme, resolvedTheme } = useTheme()
 
-  // Set the initial tab to 'chat' when the sidebar opens
+  // Set the initial tab to 'chat' when the sidebar opens (only when it changes to open)
   useEffect(() => {
-    setSelectedTab('chat')
-  }, [isOpen])
+    if (isOpen) {
+      setSelectedTab('chat')
+    }
+  }, [isOpen, setSelectedTab])
 
   // Always close sidebar on mobile when the component mounts
   // This ensures the sidebar is closed when navigating to a new page on mobile
   useEffect(() => {
-    if (isMobile) {
+    // Check mobile state inside useEffect to avoid hydration issues
+    const checkMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
+    if (checkMobile()) {
       setIsOpen(false)
     }
-  }, [setIsOpen])
+  }, []) // Remove setIsOpen from dependencies
 
   // Handle Ctrl+B
   useEffect(() => {
@@ -110,11 +113,28 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     clearChats()
-
     await signOut()
-  }
+  }, [clearChats, signOut])
+
+  const handleThemeChange = useCallback(
+    (newTheme: string) => {
+      setTheme(newTheme)
+    },
+    [setTheme]
+  )
+
+  const toggleSidebar = useCallback(() => {
+    setIsOpen(!isOpen)
+  }, [isOpen, setIsOpen])
+
+  const handleTabChange = useCallback(
+    (tab: 'chat' | 'settings') => {
+      setSelectedTab(tab)
+    },
+    [setSelectedTab]
+  )
 
   return (
     <aside className='relative'>
@@ -124,7 +144,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
           variant='ghost'
           size='icon'
           aria-label='Open sidebar'
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={toggleSidebar}
           data-state={isOpen ? 'open' : 'closed'}
           className='backdrop-blur-sm data-[state=closed]:bg-white/10 md:data-[state=closed]:bg-transparent'
         >
@@ -151,17 +171,16 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
               size='icon'
               aria-label='Chat'
               className='dark:text-accent-foreground'
-              onClick={() => setSelectedTab('chat')}
+              onClick={() => handleTabChange('chat')}
             >
               <MessageCircle className='size-5' />
             </Button>
-
             <Button
               variant={selectedTab === 'settings' ? 'secondary' : 'ghost'}
               size='icon'
               aria-label='Settings'
               className='dark:text-accent-foreground'
-              onClick={() => setSelectedTab('settings')}
+              onClick={() => handleTabChange('settings')}
             >
               <Settings className='size-5' />
             </Button>
@@ -195,23 +214,21 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                 <DropdownMenuItem
                   data-selected={theme === 'system'}
                   className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                  onClick={() => setTheme('system')}
+                  onClick={() => handleThemeChange('system')}
                 >
                   System
                 </DropdownMenuItem>
-
                 <DropdownMenuItem
                   data-selected={theme === 'dark'}
                   className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                  onClick={() => setTheme('dark')}
+                  onClick={() => handleThemeChange('dark')}
                 >
                   Dark
                 </DropdownMenuItem>
-
                 <DropdownMenuItem
                   data-selected={theme === 'light'}
                   className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                  onClick={() => setTheme('light')}
+                  onClick={() => handleThemeChange('light')}
                 >
                   Light
                 </DropdownMenuItem>
@@ -394,3 +411,5 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     </aside>
   )
 }
+
+export const Sidebar = memo(SidebarComponent)

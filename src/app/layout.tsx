@@ -9,6 +9,7 @@ import '~/styles/globals.css'
 import { ChatSyncProvider } from '~/components/ChatSyncProvider'
 import { ThemeProvider } from '~/components/ThemeProvider'
 import { Toaster } from '~/components/ui/sonner'
+import { AppLayout } from '../components/AppLayout'
 
 import { TRPCReactProvider } from '~/trpc/react'
 
@@ -92,7 +93,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 <ChatSyncProvider />
                 <Analytics />
                 <Toaster />
-                {children}
+                <AppLayout>{children}</AppLayout>
               </TRPCReactProvider>
             </main>
           </ThemeProvider>
