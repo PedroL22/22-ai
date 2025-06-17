@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import {
@@ -78,6 +79,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
   const groupedChats = groupChats(sortedChats)
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const { push } = useRouter()
 
   // Set the initial tab to 'chat' when the sidebar opens (only when it changes to open)
   useEffect(() => {
@@ -96,15 +98,22 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     }
   }, []) // Remove setIsOpen from dependencies
 
-  // Handle Ctrl+B
+  // Handle Ctrl+B and Ctrl+Shift+O
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().includes('MAC')
       const isCtrlB = (isMac ? e.metaKey : e.ctrlKey) && (e.key === 'b' || e.key === 'B')
+      const isCtrlShiftO = (isMac ? e.metaKey : e.ctrlKey) && e.shiftKey && (e.key === 'o' || e.key === 'O')
 
       if (isCtrlB) {
         e.preventDefault()
         setIsOpen(!isOpen)
+      }
+
+      if (isCtrlShiftO) {
+        e.preventDefault()
+        // Navigate to home page for new chat
+        push('/')
       }
     }
 
