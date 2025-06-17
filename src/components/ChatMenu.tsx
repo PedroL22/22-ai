@@ -19,9 +19,11 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 
 import { useChatStore } from '~/stores/useChatStore'
+import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { cn } from '~/lib/utils'
 import { api } from '~/trpc/react'
+import { isMobile } from '~/utils/is-mobile'
 
 type ChatMenuProps = {
   chatId: string
@@ -40,6 +42,7 @@ export const ChatMenu = ({
 }: ChatMenuProps) => {
   const { isSignedIn } = useUser()
   const { removeChat, pinChat, shareChat, renameChat, chatsDisplayMode } = useChatStore()
+  const { setIsOpen } = useSidebarStore()
   const [isRenaming, setIsRenaming] = useState(false)
   const [newTitle, setNewTitle] = useState(chatTitle || '')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -169,6 +172,10 @@ export const ChatMenu = ({
 
   const handleChatClick = () => {
     if (!isRenaming) {
+      // Close sidebar on mobile when selecting a chat
+      if (isMobile) {
+        setIsOpen(false)
+      }
       push(`/${chatId}`)
     }
   }

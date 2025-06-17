@@ -40,6 +40,7 @@ import { useSidebarStore } from '~/stores/useSidebarStore'
 
 import { clerkThemes } from '~/lib/clerk-themes'
 import { getGroupLabel, groupChats } from '~/utils/group-chats'
+import { isMobile } from '~/utils/is-mobile'
 
 type SidebarProps = {
   selectedChatId?: string | null | undefined
@@ -135,6 +136,13 @@ const SidebarComponent = ({ selectedChatId }: SidebarProps) => {
     },
     [setSelectedTab]
   )
+
+  const handleNewChatClick = useCallback(() => {
+    // Close sidebar on mobile when starting a new chat
+    if (isMobile) {
+      setIsOpen(false)
+    }
+  }, [setIsOpen])
 
   return (
     <aside className='relative'>
@@ -280,7 +288,9 @@ const SidebarComponent = ({ selectedChatId }: SidebarProps) => {
                 className='flex min-h-0 flex-1 flex-col space-y-4'
               >
                 <Button asChild>
-                  <Link href='/'>New chat</Link>
+                  <Link href='/' onClick={handleNewChatClick}>
+                    New chat
+                  </Link>
                 </Button>
 
                 <div className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'>
