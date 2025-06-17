@@ -122,7 +122,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       setMessages([])
     }
 
-    // Scroll automatically to the bottom when messages load (but not for empty state)
+    // Only auto-scroll on initial load
     setTimeout(() => {
       const hasMessages =
         chatId &&
@@ -130,15 +130,17 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
           (dbMessages && dbMessages.length > 0) ||
           (currentChat && getMessages(chatId).length > 0))
 
-      if (hasMessages) {
+      // Only scroll if user hasn't manually scrolled up and we have messages
+      if (hasMessages && !userScrolledUp) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
         setShowScrollToBottom(false)
         setUserScrolledUp(false)
       }
     }, 100)
-  }, [chatId, sharedMessages, dbMessages, currentChat])
+  }, [chatId, sharedMessages, dbMessages, currentChat, userScrolledUp])
 
   useEffect(() => {
+    // Only auto-scroll during streaming if user hasn't manually scrolled up
     if (isStreaming && !userScrolledUp) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       setShowScrollToBottom(false)
@@ -153,10 +155,12 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       const { scrollTop, scrollHeight, clientHeight } = container
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50 // 50px threshold
 
-      if (!isAtBottom && !showScrollToBottom) {
+      // If user scrolled up from bottom, mark it as intentional
+      if (!isAtBottom && !userScrolledUp) {
         setShowScrollToBottom(true)
         setUserScrolledUp(true)
-      } else if (isAtBottom && showScrollToBottom) {
+      } else if (isAtBottom) {
+        // User is back at bottom
         setShowScrollToBottom(false)
         setUserScrolledUp(false)
       }
@@ -167,7 +171,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
       container.addEventListener('scroll', handleScroll)
       return () => container.removeEventListener('scroll', handleScroll)
     }
-  }, [showScrollToBottom])
+  }, [])
 
   useEffect(() => {
     return () => {
