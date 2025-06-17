@@ -11,7 +11,7 @@
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
     "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: "Berkeley Mono", "JetBrains Mono", "Geist Mono", "Fira Code", "SF Mono", Monaco, Consolas,
+  --font-mono: "JetBrains Mono", "Geist Mono", "Fira Code", "Berkeley Mono", "SF Mono", Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
 }
 
