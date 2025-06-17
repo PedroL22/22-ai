@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   ChevronDown,
@@ -56,6 +56,8 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
+  const [canScrollDown, setCanScrollDown] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const chatsToDisplay = (() => {
     if (!isSignedIn) {
@@ -120,6 +122,31 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
+
+  // Handle scroll detection for gradient indicator
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current
+    if (!scrollContainer) return
+
+    const checkScrollability = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer
+      const canScroll = scrollHeight > clientHeight
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10 // 10px threshold
+      setCanScrollDown(canScroll && !isAtBottom)
+    }
+
+    checkScrollability()
+    scrollContainer.addEventListener('scroll', checkScrollability)
+
+    // Check on content changes
+    const resizeObserver = new ResizeObserver(checkScrollability)
+    resizeObserver.observe(scrollContainer)
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', checkScrollability)
+      resizeObserver.disconnect()
+    }
+  }, [sortedChats, selectedTab, isOpen])
 
   const handleLogout = async () => {
     clearChats()
@@ -293,54 +320,64 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
                   </Link>
                 </Button>
 
-                <div className='scrollbar-hide min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'>
-                  {(!isSignedIn || chatsDisplayMode === 'local') &&
-                  !isSyncing &&
-                  sortedChats.length === 0 &&
-                  !isInitialLoading ? (
-                    <div className='flex size-full items-center justify-center'>
-                      <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
-                    </div>
-                  ) : isSyncing || isInitialLoading ? (
-                    <div className='flex size-full items-center justify-center'>
-                      <Loader2 className='size-4 animate-spin' />
-                    </div>
-                  ) : (
-                    <div className='w-full space-y-4'>
-                      {(Object.keys(groupedChats) as Array<keyof typeof groupedChats>).map((groupKey) => {
-                        const group = groupedChats[groupKey]
-                        if (group.length === 0) return null
+                <div className='relative min-h-0 flex-1'>
+                  <div
+                    ref={scrollContainerRef}
+                    className='scrollbar-hide absolute inset-0 flex min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
+                  >
+                    {(!isSignedIn || chatsDisplayMode === 'local') &&
+                    !isSyncing &&
+                    sortedChats.length === 0 &&
+                    !isInitialLoading ? (
+                      <div className='flex size-full items-center justify-center'>
+                        <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
+                      </div>
+                    ) : isSyncing || isInitialLoading ? (
+                      <div className='flex size-full items-center justify-center'>
+                        <Loader2 className='size-4 animate-spin' />
+                      </div>
+                    ) : (
+                      <div className='w-full space-y-4'>
+                        {(Object.keys(groupedChats) as Array<keyof typeof groupedChats>).map((groupKey) => {
+                          const group = groupedChats[groupKey]
+                          if (group.length === 0) return null
 
-                        return (
-                          <div key={groupKey} className='space-y-1 pt-1'>
-                            <h3 className='px-3 font-medium text-muted-foreground/75 text-xs tracking-wider dark:text-muted-foreground/60'>
-                              {groupKey === 'pinned' ? (
-                                <div className='flex items-center gap-1'>
-                                  <Pin className='size-3' />
-                                  <span>{getGroupLabel(groupKey)}</span>
-                                </div>
-                              ) : (
-                                getGroupLabel(groupKey)
-                              )}
-                            </h3>
+                          return (
+                            <div key={groupKey} className='space-y-1 pt-1'>
+                              <h3 className='px-3 font-medium text-muted-foreground/75 text-xs tracking-wider dark:text-muted-foreground/60'>
+                                {groupKey === 'pinned' ? (
+                                  <div className='flex items-center gap-1'>
+                                    <Pin className='size-3' />
+                                    <span>{getGroupLabel(groupKey)}</span>
+                                  </div>
+                                ) : (
+                                  getGroupLabel(groupKey)
+                                )}
+                              </h3>
 
-                            <div className='space-y-1'>
-                              {group.map((chat) => (
-                                <ChatMenu
-                                  key={chat.id}
-                                  chatId={chat.id}
-                                  chatTitle={chat.title}
-                                  isPinned={chat.isPinned}
-                                  isShared={chat.isShared}
-                                  isSelected={chat.id === selectedChatId}
-                                />
-                              ))}
+                              <div className='space-y-1'>
+                                {group.map((chat) => (
+                                  <ChatMenu
+                                    key={chat.id}
+                                    chatId={chat.id}
+                                    chatTitle={chat.title}
+                                    isPinned={chat.isPinned}
+                                    isShared={chat.isShared}
+                                    isSelected={chat.id === selectedChatId}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Scroll indicator gradient */}
+                  <div
+                    className={`pointer-events-none absolute right-0 bottom-0 left-0 h-8 bg-gradient-to-t from-background to-transparent transition-opacity duration-300 ${canScrollDown ? 'opacity-100' : 'opacity-0'}`}
+                  />
                 </div>
               </motion.div>
             )}
