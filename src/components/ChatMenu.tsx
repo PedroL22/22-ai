@@ -172,7 +172,6 @@ export const ChatMenu = ({
 
   const handleChatClick = () => {
     if (!isRenaming) {
-      // Close sidebar on mobile when selecting a chat
       if (isMobile) {
         setIsOpen(false)
       }

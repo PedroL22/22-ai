@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   ChevronDown,
@@ -49,14 +49,14 @@ type SidebarProps = {
 /**
  * Sidebar component that displays the chat list and user information.
  */
-const SidebarComponent = ({ selectedChatId }: SidebarProps) => {
+export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
   const { chats: localChats, clearChats, chatsDisplayMode, isSyncing, isInitialLoading } = useChatStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
 
-  const chatsToDisplay = useMemo(() => {
+  const chatsToDisplay = (() => {
     if (!isSignedIn) {
       return localChats.map((chat) => ({ ...chat, isLocal: true }))
     }
@@ -68,17 +68,15 @@ const SidebarComponent = ({ selectedChatId }: SidebarProps) => {
 
     // Fallback to local chats during sync
     return localChats.map((chat) => ({ ...chat, isLocal: true }))
-  }, [isSignedIn, localChats, chatsDisplayMode])
+  })()
 
-  const sortedChats = useMemo(() => {
-    return chatsToDisplay.sort((a, b) => {
-      const dateA = new Date(a.updatedAt).getTime()
-      const dateB = new Date(b.updatedAt).getTime()
-      return dateB - dateA
-    })
-  }, [chatsToDisplay])
+  const sortedChats = chatsToDisplay.sort((a, b) => {
+    const dateA = new Date(a.updatedAt).getTime()
+    const dateB = new Date(b.updatedAt).getTime()
+    return dateB - dateA
+  })
 
-  const groupedChats = useMemo(() => groupChats(sortedChats), [sortedChats])
+  const groupedChats = groupChats(sortedChats)
   const { theme, setTheme, resolvedTheme } = useTheme()
 
   // Set the initial tab to 'chat' when the sidebar opens (only when it changes to open)
@@ -114,35 +112,28 @@ const SidebarComponent = ({ selectedChatId }: SidebarProps) => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, setIsOpen])
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     clearChats()
     await signOut()
-  }, [clearChats, signOut])
+  }
 
-  const handleThemeChange = useCallback(
-    (newTheme: string) => {
-      setTheme(newTheme)
-    },
-    [setTheme]
-  )
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme)
+  }
 
-  const toggleSidebar = useCallback(() => {
+  const toggleSidebar = () => {
     setIsOpen(!isOpen)
-  }, [isOpen, setIsOpen])
+  }
 
-  const handleTabChange = useCallback(
-    (tab: 'chat' | 'settings') => {
-      setSelectedTab(tab)
-    },
-    [setSelectedTab]
-  )
+  const handleTabChange = (tab: 'chat' | 'settings') => {
+    setSelectedTab(tab)
+  }
 
-  const handleNewChatClick = useCallback(() => {
-    // Close sidebar on mobile when starting a new chat
+  const handleNewChatClick = () => {
     if (isMobile) {
       setIsOpen(false)
     }
-  }, [setIsOpen])
+  }
 
   return (
     <aside className='relative'>
@@ -421,5 +412,3 @@ const SidebarComponent = ({ selectedChatId }: SidebarProps) => {
     </aside>
   )
 }
-
-export const Sidebar = memo(SidebarComponent)
