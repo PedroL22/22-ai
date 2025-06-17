@@ -4,7 +4,7 @@
   "description": "T3 Chat clone for cloneathon. I really like the number 22.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#27272a",
   "theme_color": "#7c3aed",
   "orientation": "portrait-primary",
   "icons": [
