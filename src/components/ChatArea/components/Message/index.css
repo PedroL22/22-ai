@@ -14,7 +14,9 @@
 }
 
 .katex {
-  font-size: 1.1em !important;
+  font-size: 1.4em !important;
+  display: flex !important;
+  justify-content: center !important;
 }
 
 /* Dark theme code highlighting */

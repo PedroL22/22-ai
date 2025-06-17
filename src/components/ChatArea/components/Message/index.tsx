@@ -157,20 +157,6 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit }:
             {children}
           </p>
         ),
-        div: ({ className, children, ...props }: { className?: string; children?: ReactNode; [key: string]: any }) => {
-          if (className?.includes('math-display')) {
-            return (
-              <div className='my-2 overflow-x-auto text-center text-sm' {...props}>
-                {children}
-              </div>
-            )
-          }
-          return (
-            <div className={className} {...props}>
-              {children}
-            </div>
-          )
-        },
         hr: ({ ...props }: { [key: string]: any }) => <hr className='my-3 border-border' {...props} />,
         input: ({ type, checked, ...props }: { type?: string; checked?: boolean; [key: string]: any }) => {
           if (type === 'checkbox') {
