@@ -758,7 +758,7 @@ export const ChatArea = ({ chatId }: ChatAreaProps) => {
     <div className='relative flex w-full flex-col items-center bg-accent'>
       {/* Shared indicator */}
       {isSharedChat && (
-        <div className='absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 font-medium text-primary text-xs backdrop-blur-sm'>
+        <div className='absolute top-4 right-4 z-10 flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 font-medium text-primary text-xs backdrop-blur-sm'>
           <Share2 className='size-3' />
           <span>Shared</span>
 
