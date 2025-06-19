@@ -70,7 +70,9 @@ async function createAnthropicChatCompletion(
 async function createGeminiChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string, stream = false) {
   const modelName = modelId.replace(/^google\//, '').replace(/:byok$/, '')
   const endpoint = stream ? 'streamGenerateContent' : 'generateContent'
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:${endpoint}?key=${apiKey}`
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:${endpoint}?key=${apiKey}${
+    stream ? '&alt=sse' : ''
+  }`
 
   // Note: Gemini has strict rules about roles. A system prompt is best handled by
   // prepending its content to the first user message for robust conversation flow.
@@ -300,7 +302,9 @@ export const createChatCompletionStream = async (messages: ChatMessage[], modelI
 
   if (modelId.startsWith('openai/')) {
     if (!apiKey) return { success: false, error: '❌ No OpenAI API key set.', stream: null }
+
     const client = createNativeOpenAIClient(apiKey)
+
     try {
       const stream = await client.chat.completions.create({
         model: modelId.replace(/^openai\//, '').replace(/:byok$/, ''),
@@ -317,6 +321,7 @@ export const createChatCompletionStream = async (messages: ChatMessage[], modelI
 
   if (modelId.startsWith('anthropic/')) {
     if (!apiKey) return { success: false, error: '❌ No Anthropic API key set.', stream: null }
+
     try {
       const result = await createAnthropicChatCompletion(messages, modelId, apiKey, true)
       return { success: true, stream: result.stream }
@@ -326,7 +331,8 @@ export const createChatCompletionStream = async (messages: ChatMessage[], modelI
   }
 
   if (modelId.startsWith('google/')) {
-    if (!apiKey) return { success: false, error: '❌ No Gemini API key set.', stream: true }
+    if (!apiKey) return { success: false, error: '❌ No Gemini API key set.', stream: null }
+
     try {
       const result = await createGeminiChatCompletion(messages, modelId, apiKey, true)
       return { success: true, stream: result.stream }
@@ -337,6 +343,7 @@ export const createChatCompletionStream = async (messages: ChatMessage[], modelI
 
   if (modelId.startsWith('grok/')) {
     if (!apiKey) return { success: false, error: '❌ No Grok API key set.', stream: null }
+
     try {
       const result = await createGrokChatCompletion(messages, modelId, apiKey, true)
       return { success: true, stream: result.stream }

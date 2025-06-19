@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { env } from '~/env'
+import { createGeminiBYOKStreamParser } from '~/lib/gemini-byok-parser'
 import { createChatCompletionStream } from '~/lib/openai'
 import { tryCatch } from '~/utils/try-catch'
 
@@ -48,10 +49,13 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           let fullMessage = ''
+          const isGeminiBYOK = modelId.startsWith('google/') && modelId.endsWith(':byok')
 
           const streamAsyncIterable = data.stream! as AsyncIterable<any>
           for await (const chunk of streamAsyncIterable) {
-            const content = chunk.choices[0]?.delta?.content || ''
+            const content = isGeminiBYOK
+              ? createGeminiBYOKStreamParser()(chunk)
+              : chunk.choices[0]?.delta?.content || ''
 
             if (content) {
               fullMessage += content
