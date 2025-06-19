@@ -1,27 +1,14 @@
 'use client'
 
 import { UserProfile, useClerk, useUser } from '@clerk/nextjs'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
-import {
-  ChevronDown,
-  Github,
-  Loader2,
-  LogIn,
-  LogOut,
-  MessageCircle,
-  Moon,
-  PanelLeft,
-  Pin,
-  Settings,
-  Sun,
-  User,
-} from 'lucide-react'
+import { ChevronDown, Github, Loader2, LogIn, LogOut, Moon, PanelLeft, Pin, Settings, Sun, User } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog'
@@ -34,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { ChatMenu } from './ChatMenu'
-import { SettingsPanel } from './SettingsPanel'
 
 import { useChatStore } from '~/stores/useChatStore'
 import { useSidebarStore } from '~/stores/useSidebarStore'
@@ -51,11 +37,11 @@ type SidebarProps = {
  * Sidebar component that displays the chat list and user information.
  */
 export const Sidebar = ({ selectedChatId }: SidebarProps) => {
-  const { isOpen, setIsOpen, selectedTab, setSelectedTab } = useSidebarStore()
+  const { isOpen, setIsOpen } = useSidebarStore()
   const { chats: localChats, clearChats, chatsDisplayMode, isSyncing, isInitialLoading } = useChatStore()
   const { isSignedIn, isLoaded, user } = useUser()
   const { signOut } = useClerk()
-  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
+  const [manageAccountDialogOpen, setManageAccountDialogOpen] = useState(false)
   const [canScrollDown, setCanScrollDown] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -82,13 +68,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
   const groupedChats = groupChats(sortedChats)
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { push } = useRouter()
-
-  // Set the initial tab to 'chat' when the sidebar opens (only when it changes to open)
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedTab('chat')
-    }
-  }, [isOpen, setSelectedTab])
 
   // Always close sidebar on mobile when the component mounts
   // This ensures the sidebar is closed when navigating to a new page on mobile
@@ -146,7 +125,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
       scrollContainer.removeEventListener('scroll', checkScrollability)
       resizeObserver.disconnect()
     }
-  }, [sortedChats, selectedTab, isOpen])
+  }, [sortedChats, isOpen])
 
   const handleLogout = async () => {
     clearChats()
@@ -159,10 +138,6 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen)
-  }
-
-  const handleTabChange = (tab: 'chat' | 'settings') => {
-    setSelectedTab(tab)
   }
 
   const handleNewChatClick = () => {
@@ -200,26 +175,47 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
       >
         {/* Left vertical button panel */}
         <div className='flex w-16 shrink-0 flex-col items-center justify-between bg-background p-2 py-4'>
-          <div className='flex flex-col items-center space-y-2 pt-13 md:pt-11'>
-            <Button
-              variant={selectedTab === 'chat' ? 'secondary' : 'ghost'}
-              size='icon'
-              aria-label='Chat'
-              className='dark:text-accent-foreground'
-              onClick={() => handleTabChange('chat')}
-            >
-              <MessageCircle className='size-5' />
-            </Button>
-            <Button
-              variant={selectedTab === 'settings' ? 'secondary' : 'ghost'}
-              size='icon'
-              aria-label='Settings'
-              className='dark:text-accent-foreground'
-              onClick={() => handleTabChange('settings')}
-            >
-              <Settings className='size-5' />
-            </Button>
-          </div>
+          {/* Theme switcher */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='ghost'
+                size='icon'
+                aria-label='Change theme'
+                className='mt-13 md:mt-11 dark:text-accent-foreground'
+              >
+                <Sun className='dark:-rotate-90 size-5 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0' />
+
+                <Moon className='absolute size-5 h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
+
+                <span className='sr-only'>Change theme</span>
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align='end' side='right'>
+              <DropdownMenuItem
+                data-selected={theme === 'system'}
+                className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+                onClick={() => handleThemeChange('system')}
+              >
+                System
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                data-selected={theme === 'dark'}
+                className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+                onClick={() => handleThemeChange('dark')}
+              >
+                Dark
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                data-selected={theme === 'light'}
+                className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
+                onClick={() => handleThemeChange('light')}
+              >
+                Light
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className='flex flex-col space-y-2'>
             <Link
@@ -233,42 +229,16 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
               </Button>
             </Link>
 
-            {/* Theme switcher */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='icon' aria-label='Change theme' className='dark:text-accent-foreground'>
-                  <Sun className='dark:-rotate-90 size-5 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0' />
-
-                  <Moon className='absolute size-5 h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100' />
-
-                  <span className='sr-only'>Change theme</span>
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align='end' side='right'>
-                <DropdownMenuItem
-                  data-selected={theme === 'system'}
-                  className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                  onClick={() => handleThemeChange('system')}
-                >
-                  System
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  data-selected={theme === 'dark'}
-                  className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                  onClick={() => handleThemeChange('dark')}
-                >
-                  Dark
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  data-selected={theme === 'light'}
-                  className='transition-all ease-in hover:bg-accent/10 data-[selected=true]:bg-accent'
-                  onClick={() => handleThemeChange('light')}
-                >
-                  Light
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Link href='/settings' aria-label='Settings'>
+              <Button
+                variant='ghost'
+                size='icon'
+                aria-label='Settings'
+                className='cursor-pointer dark:text-accent-foreground'
+              >
+                <Settings className='size-5' />
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -296,94 +266,88 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
             />
           </div>
 
-          <AnimatePresence mode='wait'>
-            {selectedTab === 'chat' && (
-              <motion.div
-                key='chat'
-                variants={{
-                  initial: { opacity: 0 },
-                  animate: { opacity: 1 },
-                  exit: { opacity: 0 },
-                }}
-                initial='initial'
-                animate='animate'
-                exit='exit'
-                transition={{
-                  type: 'tween',
-                  duration: 0.15,
-                }}
-                className='flex min-h-0 flex-1 flex-col space-y-4'
+          <motion.div
+            key='chat'
+            variants={{
+              initial: { opacity: 0 },
+              animate: { opacity: 1 },
+              exit: { opacity: 0 },
+            }}
+            initial='initial'
+            animate='animate'
+            exit='exit'
+            transition={{
+              type: 'tween',
+              duration: 0.15,
+            }}
+            className='flex min-h-0 flex-1 flex-col space-y-4'
+          >
+            <Button asChild>
+              <Link href='/' onClick={handleNewChatClick}>
+                New chat
+              </Link>
+            </Button>
+
+            <div className='relative min-h-0 flex-1'>
+              <div
+                ref={scrollContainerRef}
+                className='scrollbar-hide absolute inset-0 flex min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
               >
-                <Button asChild>
-                  <Link href='/' onClick={handleNewChatClick}>
-                    New chat
-                  </Link>
-                </Button>
-
-                <div className='relative min-h-0 flex-1'>
-                  <div
-                    ref={scrollContainerRef}
-                    className='scrollbar-hide absolute inset-0 flex min-h-0 flex-1 flex-col items-center space-y-2.5 overflow-y-auto'
-                  >
-                    {(!isSignedIn || chatsDisplayMode === 'local') &&
-                    !isSyncing &&
-                    sortedChats.length === 0 &&
-                    !isInitialLoading ? (
-                      <div className='flex size-full items-center justify-center'>
-                        <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
-                      </div>
-                    ) : isSyncing || isInitialLoading ? (
-                      <div className='flex size-full items-center justify-center'>
-                        <Loader2 className='size-4 animate-spin' />
-                      </div>
-                    ) : (
-                      <div className='w-full space-y-4'>
-                        {(Object.keys(groupedChats) as Array<keyof typeof groupedChats>).map((groupKey) => {
-                          const group = groupedChats[groupKey]
-                          if (group.length === 0) return null
-
-                          return (
-                            <div key={groupKey} className='space-y-1 pt-1'>
-                              <h3 className='px-3 font-medium text-muted-foreground/75 text-xs tracking-wider dark:text-muted-foreground/60'>
-                                {groupKey === 'pinned' ? (
-                                  <div className='flex items-center gap-1'>
-                                    <Pin className='size-3' />
-                                    <span>{getGroupLabel(groupKey)}</span>
-                                  </div>
-                                ) : (
-                                  getGroupLabel(groupKey)
-                                )}
-                              </h3>
-
-                              <div className='space-y-1'>
-                                {group.map((chat) => (
-                                  <ChatMenu
-                                    key={chat.id}
-                                    chatId={chat.id}
-                                    chatTitle={chat.title}
-                                    isPinned={chat.isPinned}
-                                    isShared={chat.isShared}
-                                    isSelected={chat.id === selectedChatId}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                {(!isSignedIn || chatsDisplayMode === 'local') &&
+                !isSyncing &&
+                sortedChats.length === 0 &&
+                !isInitialLoading ? (
+                  <div className='flex size-full items-center justify-center'>
+                    <div className='text-center text-muted-foreground text-sm'>No chats yet.</div>
                   </div>
+                ) : isSyncing || isInitialLoading ? (
+                  <div className='flex size-full items-center justify-center'>
+                    <Loader2 className='size-4 animate-spin' />
+                  </div>
+                ) : (
+                  <div className='w-full space-y-4'>
+                    {(Object.keys(groupedChats) as Array<keyof typeof groupedChats>).map((groupKey) => {
+                      const group = groupedChats[groupKey]
+                      if (group.length === 0) return null
 
-                  {/* Scroll indicator gradient */}
-                  <div
-                    className={`pointer-events-none absolute right-0 bottom-0 left-0 h-8 bg-gradient-to-t from-background to-transparent transition-opacity duration-300 ${canScrollDown ? 'opacity-100' : 'opacity-0'}`}
-                  />
-                </div>
-              </motion.div>
-            )}
+                      return (
+                        <div key={groupKey} className='space-y-1 pt-1'>
+                          <h3 className='px-3 font-medium text-muted-foreground/75 text-xs tracking-wider dark:text-muted-foreground/60'>
+                            {groupKey === 'pinned' ? (
+                              <div className='flex items-center gap-1'>
+                                <Pin className='size-3' />
+                                <span>{getGroupLabel(groupKey)}</span>
+                              </div>
+                            ) : (
+                              getGroupLabel(groupKey)
+                            )}
+                          </h3>
 
-            {selectedTab === 'settings' && <SettingsPanel />}
-          </AnimatePresence>
+                          <div className='space-y-1'>
+                            {group.map((chat) => (
+                              <ChatMenu
+                                key={chat.id}
+                                chatId={chat.id}
+                                chatTitle={chat.title}
+                                isPinned={chat.isPinned}
+                                isShared={chat.isShared}
+                                isSelected={chat.id === selectedChatId}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Scroll indicator gradient */}
+              <div
+                className={`pointer-events-none absolute right-0 bottom-0 left-0 h-8 bg-gradient-to-t from-background to-transparent transition-opacity duration-300 ${canScrollDown ? 'opacity-100' : 'opacity-0'}`}
+              />
+            </div>
+          </motion.div>
 
           {/* User stuff */}
           {!isLoaded ? (
@@ -412,7 +376,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
 
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={() => setIsSettingsDialogOpen(true)}>
+                  <DropdownMenuItem onClick={() => setManageAccountDialogOpen(true)}>
                     <User className='size-4' />
                     <span>Manage account</span>
                   </DropdownMenuItem>
@@ -443,7 +407,7 @@ export const Sidebar = ({ selectedChatId }: SidebarProps) => {
       </motion.div>
 
       {/* Manage account dialog */}
-      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+      <Dialog open={manageAccountDialogOpen} onOpenChange={setManageAccountDialogOpen}>
         <DialogContent className='overflow-auto rounded-2xl border-none p-0 md:max-w-[880px]'>
           <DialogHeader className='sr-only'>
             <DialogTitle />

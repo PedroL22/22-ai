@@ -15,6 +15,13 @@ type ApiKeyStore = {
   isKeyRateLimited: (keyIndex: number) => boolean
   getNextAvailableKeyIndex: () => number | null
   clearExpiredRateLimits: () => void
+  // BYOK API keys
+  openaiApiKey: string
+  geminiApiKey: string
+  anthropicApiKey: string
+  setOpenaiApiKey: (key: string) => void
+  setGeminiApiKey: (key: string) => void
+  setAnthropicApiKey: (key: string) => void
 }
 
 const STORAGE_EXPIRY_HOURS = 1 // Reset to first key after 1 hour
@@ -31,6 +38,9 @@ export const useApiKeyStore = create<ApiKeyStore>()(
       lastUpdated: Date.now(),
       totalKeys: 1,
       rateLimitedKeys: {},
+      openaiApiKey: '',
+      geminiApiKey: '',
+      anthropicApiKey: '',
 
       setCurrentKeyIndex: (index: number) => {
         set({
@@ -152,6 +162,10 @@ export const useApiKeyStore = create<ApiKeyStore>()(
       setTotalKeys: (total: number) => {
         set({ totalKeys: total })
       },
+
+      setOpenaiApiKey: (key: string) => set({ openaiApiKey: key }),
+      setGeminiApiKey: (key: string) => set({ geminiApiKey: key }),
+      setAnthropicApiKey: (key: string) => set({ anthropicApiKey: key }),
     }),
     {
       name: 'openrouter-api-key-store', // Check for expiry on hydration and clear expired rate limits

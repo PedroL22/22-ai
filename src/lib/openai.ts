@@ -5,8 +5,25 @@ import { cycleToNextApiKeyServerSide, getCurrentApiKey } from './api-key-manager
 
 import type { ModelsIds } from '~/types/models'
 
-// Create a function to get a fresh OpenAI client with the current API key
-const createOpenAIClient = (apiKey?: string): OpenAI => {
+// Helper to get BYOK API key from zustand (client only)
+function getApiKeyForModel(modelId: ModelsIds): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  // Dynamically import the zustand store to avoid SSR issues
+  try {
+    const { useApiKeyStore } = require('~/stores/useApiKeyStore')
+
+    if (modelId.startsWith('openai/')) return useApiKeyStore.getState().openaiApiKey || undefined
+    if (modelId.startsWith('google/')) return useApiKeyStore.getState().geminiApiKey || undefined
+    if (modelId.startsWith('anthropic/')) return useApiKeyStore.getState().anthropicApiKey || undefined
+  } catch {
+    // fallback for SSR or errors
+    return undefined
+  }
+  return undefined
+}
+
+// OpenRouter client (for free models only)
+const createOpenRouterClient = (apiKey?: string): OpenAI => {
   return new OpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey: apiKey || getCurrentApiKey(),
@@ -17,7 +34,57 @@ const createOpenAIClient = (apiKey?: string): OpenAI => {
   })
 }
 
-export const openai = createOpenAIClient()
+// Native OpenAI client (for BYOK)
+const createNativeOpenAIClient = (apiKey: string): OpenAI => {
+  return new OpenAI({
+    apiKey,
+    baseURL: 'https://api.openai.com/v1',
+  })
+}
+
+// Gemini native call (BYOK)
+async function createGeminiChatCompletion(messages: any[], apiKey: string) {
+  // Gemini API expects a different format
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
+  const body = {
+    contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.content }] })),
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`❌ Gemini API error: ${await res.text()}`)
+  const data = await res.json()
+  return { success: true, message: data.candidates?.[0]?.content?.parts?.[0]?.text || '' }
+}
+
+// Anthropic native call (BYOK)
+async function createAnthropicChatCompletion(messages: any[], apiKey: string) {
+  const url = 'https://api.anthropic.com/v1/messages'
+  const systemPrompt = messages.find((m) => m.role === 'system')?.content
+  const userMessages = messages.filter((m) => m.role === 'user').map((m) => m.content)
+  const body = {
+    model: 'claude-2.1',
+    max_tokens: 1000,
+    messages: [
+      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+      ...userMessages.map((content) => ({ role: 'user', content })),
+    ],
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`❌ Anthropic API error: ${await res.text()}`)
+  const data = await res.json()
+  return { success: true, message: data.content?.[0]?.text || '' }
+}
 
 export type ChatMessage = {
   role: 'system' | 'user' | 'assistant'
@@ -52,7 +119,7 @@ const makeApiCallWithFallback = async <T>(
 
   while (attempts < maxRetries) {
     try {
-      const client = createOpenAIClient()
+      const client = createOpenRouterClient()
       const result = await apiCall(client)
       return { success: true, data: result }
     } catch (error) {
@@ -86,30 +153,82 @@ const makeApiCallWithFallback = async <T>(
 }
 
 export const createChatCompletion = async (messages: ChatMessage[], modelId: ModelsIds) => {
-  const result = await makeApiCallWithFallback((client) =>
-    client.chat.completions.create({
-      model: modelId ?? (env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
-      messages,
-      temperature: 0.7,
-      max_completion_tokens: 1000,
-    })
-  )
-
-  if (!result.success) {
+  // Route based on model
+  if (modelId.endsWith(':free')) {
+    // OpenRouter (free)
+    const result = await makeApiCallWithFallback((client) =>
+      client.chat.completions.create({
+        model: modelId ?? (env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+        messages,
+        temperature: 0.7,
+        max_completion_tokens: 1000,
+      })
+    )
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+      }
+    }
     return {
-      success: false,
-      error: result.error,
+      success: true,
+      message: result.data.choices[0]?.message?.content || '',
+      usage: result.data.usage,
     }
   }
-
-  return {
-    success: true,
-    message: result.data.choices[0]?.message?.content || '',
-    usage: result.data.usage,
+  if (modelId.startsWith('openai/')) {
+    // BYOK OpenAI
+    const apiKey = getApiKeyForModel(modelId)
+    if (!apiKey) return { success: false, error: '❌ No OpenAI API key set.' }
+    const client = createNativeOpenAIClient(apiKey)
+    try {
+      const result = await client.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      })
+      return {
+        success: true,
+        message: result.choices[0]?.message?.content || '',
+        usage: result.usage,
+      }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
   }
+  if (modelId.startsWith('google/')) {
+    // BYOK Gemini
+    const apiKey = getApiKeyForModel(modelId)
+    if (!apiKey) return { success: false, error: '❌ No Gemini API key set.' }
+    try {
+      return await createGeminiChatCompletion(messages, apiKey)
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+  if (modelId.startsWith('anthropic/')) {
+    // BYOK Anthropic
+    const apiKey = getApiKeyForModel(modelId)
+    if (!apiKey) return { success: false, error: '❌ No Anthropic API key set.' }
+    try {
+      return await createAnthropicChatCompletion(messages, apiKey)
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+  return { success: false, error: 'Unknown model provider.' }
 }
 
 export const createChatCompletionStream = async (messages: ChatMessage[], modelId: ModelsIds) => {
+  // Only support streaming for OpenRouter/free models for now
+  if (!modelId.endsWith(':free')) {
+    return {
+      success: false,
+      error: 'Streaming is only supported for free models (OpenRouter) in this version.',
+      stream: null,
+    }
+  }
   const result = await makeApiCallWithFallback((client) =>
     client.chat.completions.create({
       model: modelId ?? (env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
@@ -119,7 +238,6 @@ export const createChatCompletionStream = async (messages: ChatMessage[], modelI
       stream: true,
     })
   )
-
   if (!result.success) {
     return {
       success: false,
@@ -127,7 +245,6 @@ export const createChatCompletionStream = async (messages: ChatMessage[], modelI
       stream: null,
     }
   }
-
   return {
     success: true,
     stream: result.data,

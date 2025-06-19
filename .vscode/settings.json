@@ -4,6 +4,8 @@
     "appinstalled",
     "beforeinstallprompt",
     "browserconfig",
+    "byok",
+    "BYOK",
     "cloneathon",
     "cmdk",
     "datasource",
@@ -23,12 +25,14 @@
     "OPENROUTER",
     "qwen",
     "Qwen",
+    "Scrollability",
     "sqlite",
     "svix",
     "tbody",
     "thead",
     "tngtech",
     "TTFT",
+    "uuid",
     "vercel"
   ],
   "typescript.tsdk": "node_modules\\typescript\\lib"

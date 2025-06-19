@@ -15,8 +15,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const chatId = params?.chatId as string | undefined
 
-  // Don't show sidebar on sign-in page
-  const showSidebarAndSearchCommand = !pathname.startsWith('/sign-in')
+  const routesToHide = ['/sign-in', '/settings']
+  const showSidebarAndSearchCommand = !routesToHide.some((route) => pathname.startsWith(route))
 
   if (!showSidebarAndSearchCommand) {
     return children

@@ -117,7 +117,7 @@ export const chatRouter = createTRPCRouter({
       const result = await createChatCompletion([{ role: 'user', content: input.firstMessage }], input.modelId)
 
       if (!result.success) {
-        console.error('❌ Error creating chat: ', result.error || 'Unknown error occurred.')
+        console.error('❌ Error creating chat: ', result || 'Unknown error occurred.')
 
         return {
           success: false,
