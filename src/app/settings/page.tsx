@@ -24,11 +24,13 @@ export default function SettingsPage() {
   const [manageAccountDialogOpen, setManageAccountDialogOpen] = useState(false)
   const { settings, isLoading, updateSetting, isUpdating } = useUserSettings()
   const openaiApiKey = useApiKeyStore((s) => s.openaiApiKey)
-  const geminiApiKey = useApiKeyStore((s) => s.geminiApiKey)
   const anthropicApiKey = useApiKeyStore((s) => s.anthropicApiKey)
+  const geminiApiKey = useApiKeyStore((s) => s.geminiApiKey)
+  const grokApiKey = useApiKeyStore((s) => s.grokApiKey)
   const setOpenaiApiKey = useApiKeyStore((s) => s.setOpenaiApiKey)
-  const setGeminiApiKey = useApiKeyStore((s) => s.setGeminiApiKey)
   const setAnthropicApiKey = useApiKeyStore((s) => s.setAnthropicApiKey)
+  const setGeminiApiKey = useApiKeyStore((s) => s.setGeminiApiKey)
+  const setGrokApiKey = useApiKeyStore((s) => s.setGrokApiKey)
 
   const { isSignedIn, user } = useUser()
   const { resolvedTheme } = useTheme()
@@ -130,6 +132,21 @@ export default function SettingsPage() {
                   placeholder='sk-ant-...'
                   value={anthropicApiKey}
                   onChange={(e) => setAnthropicApiKey(e.target.value)}
+                  autoComplete='off'
+                />
+              </div>
+
+              <div className='space-y-2'>
+                <Label htmlFor='grok_api_key' className='font-medium text-sm'>
+                  Grok API Key
+                </Label>
+
+                <Input
+                  id='grok_api_key'
+                  type='password'
+                  placeholder='sk-grk-...'
+                  value={grokApiKey}
+                  onChange={(e) => setGrokApiKey(e.target.value)}
                   autoComplete='off'
                 />
               </div>

@@ -13,8 +13,9 @@ function getApiKeyForModel(modelId: ModelsIds): string | undefined {
     const { useApiKeyStore } = require('~/stores/useApiKeyStore')
 
     if (modelId.startsWith('openai/')) return useApiKeyStore.getState().openaiApiKey || undefined
-    if (modelId.startsWith('google/')) return useApiKeyStore.getState().geminiApiKey || undefined
     if (modelId.startsWith('anthropic/')) return useApiKeyStore.getState().anthropicApiKey || undefined
+    if (modelId.startsWith('google/')) return useApiKeyStore.getState().geminiApiKey || undefined
+    if (modelId.startsWith('grok/')) return useApiKeyStore.getState().grokApiKey || undefined
   } catch {
     // fallback for SSR or errors
     return undefined
@@ -42,30 +43,13 @@ const createNativeOpenAIClient = (apiKey: string): OpenAI => {
   })
 }
 
-// Gemini native call (BYOK)
-async function createGeminiChatCompletion(messages: any[], apiKey: string) {
-  // Gemini API expects a different format
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
-  const body = {
-    contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.content }] })),
-  }
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`❌ Gemini API error: ${await res.text()}`)
-  const data = await res.json()
-  return { success: true, message: data.candidates?.[0]?.content?.parts?.[0]?.text || '' }
-}
-
 // Anthropic native call (BYOK)
-async function createAnthropicChatCompletion(messages: any[], apiKey: string) {
+async function createAnthropicChatCompletion(messages: any[], apiKey: string, modelId: ModelsIds) {
   const url = 'https://api.anthropic.com/v1/messages'
   const systemPrompt = messages.find((m) => m.role === 'system')?.content
   const userMessages = messages.filter((m) => m.role === 'user').map((m) => m.content)
   const body = {
-    model: 'claude-2.1',
+    model: modelId.replace(/^anthropic\//, '').replace(/:byok$/, ''),
     max_tokens: 1000,
     messages: [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
@@ -84,6 +68,46 @@ async function createAnthropicChatCompletion(messages: any[], apiKey: string) {
   if (!res.ok) throw new Error(`❌ Anthropic API error: ${await res.text()}`)
   const data = await res.json()
   return { success: true, message: data.content?.[0]?.text || '' }
+}
+
+// Gemini native call (BYOK)
+async function createGeminiChatCompletion(messages: any[], apiKey: string) {
+  // Gemini API expects a different format
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
+  const body = {
+    contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.content }] })),
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`❌ Gemini API error: ${await res.text()}`)
+  const data = await res.json()
+  return { success: true, message: data.candidates?.[0]?.content?.parts?.[0]?.text || '' }
+}
+
+// Grok native call (BYOK)
+async function createGrokChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
+  const url = 'https://api.x.ai/v1/chat/completions'
+  const modelName = modelId.replace(/^grok\//, '').replace(/:byok$/, '')
+  const body = {
+    model: modelName,
+    messages,
+    temperature: 0.7,
+    max_tokens: 1000,
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`❌ Grok API error: ${await res.text()}`)
+  const data = await res.json()
+  return { success: true, message: data.choices?.[0]?.message?.content || '' }
 }
 
 export type ChatMessage = {
@@ -183,7 +207,7 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
     const client = createNativeOpenAIClient(apiKey)
     try {
       const result = await client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: modelId.replace(/^openai\//, '').replace(/:byok$/, ''),
         messages,
         temperature: 0.7,
         max_tokens: 1000,
@@ -193,6 +217,16 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
         message: result.choices[0]?.message?.content || '',
         usage: result.usage,
       }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  }
+  if (modelId.startsWith('anthropic/')) {
+    // BYOK Anthropic
+    const apiKey = getApiKeyForModel(modelId)
+    if (!apiKey) return { success: false, error: '❌ No Anthropic API key set.' }
+    try {
+      return await createAnthropicChatCompletion(messages, apiKey, modelId)
     } catch (error: any) {
       return { success: false, error: error.message }
     }
@@ -207,12 +241,15 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
       return { success: false, error: error.message }
     }
   }
-  if (modelId.startsWith('anthropic/')) {
-    // BYOK Anthropic
+  if (modelId.startsWith('grok/')) {
     const apiKey = getApiKeyForModel(modelId)
-    if (!apiKey) return { success: false, error: '❌ No Anthropic API key set.' }
+    if (!apiKey) return { success: false, error: '❌ No Grok API key set.' }
     try {
-      return await createAnthropicChatCompletion(messages, apiKey)
+      const result = await createGrokChatCompletion(messages, modelId, apiKey)
+      return {
+        success: true,
+        message: result.message,
+      }
     } catch (error: any) {
       return { success: false, error: error.message }
     }
