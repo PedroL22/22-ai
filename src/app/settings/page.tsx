@@ -1,7 +1,7 @@
 'use client'
 
 import { UserProfile, useUser } from '@clerk/nextjs'
-import { ArrowLeft, Database, Key, Keyboard, Smartphone, Zap } from 'lucide-react'
+import { ArrowLeft, Clipboard, Database, Key, Keyboard, Smartphone, Zap } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
@@ -34,6 +34,16 @@ export default function SettingsPage() {
 
   const { isSignedIn, user } = useUser()
   const { resolvedTheme } = useTheme()
+
+  const handlePaste = async (setApiKey: (key: string) => void) => {
+    try {
+      const text = await navigator.clipboard.readText()
+      setApiKey(text.trim())
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API or when permission is denied
+      console.warn('Failed to read from clipboard:', error)
+    }
+  }
 
   const settingSections = [
     {
@@ -96,14 +106,26 @@ export default function SettingsPage() {
                   OpenAI API Key
                 </Label>
 
-                <Input
-                  id='openai_api_key'
-                  type='password'
-                  placeholder='sk-...'
-                  value={openaiApiKey}
-                  onChange={(e) => setOpenaiApiKey(e.target.value)}
-                  autoComplete='off'
-                />
+                <div className='flex gap-2'>
+                  <Input
+                    id='openai_api_key'
+                    type='password'
+                    placeholder='sk-...'
+                    value={openaiApiKey}
+                    onChange={(e) => setOpenaiApiKey(e.target.value)}
+                    autoComplete='off'
+                    className='flex-1'
+                  />
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='icon'
+                    onClick={() => handlePaste(setOpenaiApiKey)}
+                    title='Paste from clipboard'
+                  >
+                    <Clipboard className='size-4' />
+                  </Button>
+                </div>
               </div>
 
               <div className='space-y-2'>
@@ -111,14 +133,26 @@ export default function SettingsPage() {
                   Gemini API Key
                 </Label>
 
-                <Input
-                  id='gemini_api_key'
-                  type='password'
-                  placeholder='AIza...'
-                  value={geminiApiKey}
-                  onChange={(e) => setGeminiApiKey(e.target.value)}
-                  autoComplete='off'
-                />
+                <div className='flex gap-2'>
+                  <Input
+                    id='gemini_api_key'
+                    type='password'
+                    placeholder='AIza...'
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    autoComplete='off'
+                    className='flex-1'
+                  />
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='icon'
+                    onClick={() => handlePaste(setGeminiApiKey)}
+                    title='Paste from clipboard'
+                  >
+                    <Clipboard className='size-4' />
+                  </Button>
+                </div>
               </div>
 
               <div className='space-y-2'>
@@ -126,14 +160,26 @@ export default function SettingsPage() {
                   Anthropic API Key
                 </Label>
 
-                <Input
-                  id='anthropic_api_key'
-                  type='password'
-                  placeholder='sk-ant-...'
-                  value={anthropicApiKey}
-                  onChange={(e) => setAnthropicApiKey(e.target.value)}
-                  autoComplete='off'
-                />
+                <div className='flex gap-2'>
+                  <Input
+                    id='anthropic_api_key'
+                    type='password'
+                    placeholder='sk-ant-...'
+                    value={anthropicApiKey}
+                    onChange={(e) => setAnthropicApiKey(e.target.value)}
+                    autoComplete='off'
+                    className='flex-1'
+                  />
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='icon'
+                    onClick={() => handlePaste(setAnthropicApiKey)}
+                    title='Paste from clipboard'
+                  >
+                    <Clipboard className='size-4' />
+                  </Button>
+                </div>
               </div>
 
               <div className='space-y-2'>
@@ -141,14 +187,26 @@ export default function SettingsPage() {
                   Grok API Key
                 </Label>
 
-                <Input
-                  id='grok_api_key'
-                  type='password'
-                  placeholder='sk-grk-...'
-                  value={grokApiKey}
-                  onChange={(e) => setGrokApiKey(e.target.value)}
-                  autoComplete='off'
-                />
+                <div className='flex gap-2'>
+                  <Input
+                    id='grok_api_key'
+                    type='password'
+                    placeholder='sk-grk-...'
+                    value={grokApiKey}
+                    onChange={(e) => setGrokApiKey(e.target.value)}
+                    autoComplete='off'
+                    className='flex-1'
+                  />
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='icon'
+                    onClick={() => handlePaste(setGrokApiKey)}
+                    title='Paste from clipboard'
+                  >
+                    <Clipboard className='size-4' />
+                  </Button>
+                </div>
               </div>
             </div>
 
