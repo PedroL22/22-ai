@@ -22,14 +22,15 @@ const streamRequestSchema = z.object({
     .enum(MODEL_IDS)
     .optional()
     .default(env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+  apiKey: z.string().optional(),
 })
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { messages, modelId } = streamRequestSchema.parse(body)
+    const { messages, modelId, apiKey } = streamRequestSchema.parse(body)
 
-    const { data, error } = await tryCatch(createChatCompletionStream(messages, modelId))
+    const { data, error } = await tryCatch(createChatCompletionStream(messages, modelId, apiKey))
 
     if (error) {
       console.error('❌ Error creating chat completion stream: ', error)
@@ -37,7 +38,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data.stream) {
-      return NextResponse.json({ error: 'No stream data available' }, { status: 500 })
+      console.error('❌ No stream data available: ', data.error)
+      return NextResponse.json({ error: data.error ?? 'No stream data available' }, { status: 500 })
     }
 
     // Create a ReadableStream for Server-Sent Events
@@ -47,7 +49,8 @@ export async function POST(request: NextRequest) {
         try {
           let fullMessage = ''
 
-          for await (const chunk of data.stream) {
+          const streamAsyncIterable = data.stream! as AsyncIterable<any>
+          for await (const chunk of streamAsyncIterable) {
             const content = chunk.choices[0]?.delta?.content || ''
 
             if (content) {

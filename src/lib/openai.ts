@@ -5,24 +5,6 @@ import { cycleToNextApiKeyServerSide, getCurrentApiKey } from './api-key-manager
 
 import type { ModelsIds } from '~/types/models'
 
-// Helper to get BYOK API key from zustand (client only)
-function getApiKeyForModel(modelId: ModelsIds): string | undefined {
-  if (typeof window === 'undefined') return undefined
-  // Dynamically import the zustand store to avoid SSR issues
-  try {
-    const { useApiKeyStore } = require('~/stores/useApiKeyStore')
-
-    if (modelId.startsWith('openai/')) return useApiKeyStore.getState().openaiApiKey || undefined
-    if (modelId.startsWith('anthropic/')) return useApiKeyStore.getState().anthropicApiKey || undefined
-    if (modelId.startsWith('google/')) return useApiKeyStore.getState().geminiApiKey || undefined
-    if (modelId.startsWith('grok/')) return useApiKeyStore.getState().grokApiKey || undefined
-  } catch {
-    // fallback for SSR or errors
-    return undefined
-  }
-  return undefined
-}
-
 // OpenRouter client (for free models only)
 const createOpenRouterClient = (apiKey?: string): OpenAI => {
   return new OpenAI({
@@ -44,7 +26,12 @@ const createNativeOpenAIClient = (apiKey: string): OpenAI => {
 }
 
 // Anthropic native call (BYOK)
-async function createAnthropicChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
+async function createAnthropicChatCompletion(
+  messages: ChatMessage[],
+  modelId: ModelsIds,
+  apiKey: string,
+  stream = false
+) {
   const url = 'https://api.anthropic.com/v1/messages'
   const modelName = modelId.replace(/^anthropic\//, '').replace(/:byok$/, '')
 
@@ -57,6 +44,7 @@ async function createAnthropicChatCompletion(messages: ChatMessage[], modelId: M
     max_tokens: 1024,
     system: systemPrompt, // Use the dedicated 'system' parameter
     messages: conversationMessages, // Pass the full alternating user/assistant history
+    stream,
   }
 
   const res = await fetch(url, {
@@ -70,16 +58,19 @@ async function createAnthropicChatCompletion(messages: ChatMessage[], modelId: M
   })
 
   if (!res.ok) throw new Error(`❌ Anthropic API error: ${await res.text()}`)
+  if (stream) {
+    return { success: true, stream: res.body }
+  }
   const data = await res.json()
   // The response structure for Claude is {..., "content": [{"type": "text", "text": "..."}]}
   return { success: true, message: data.content?.[0]?.text || '' }
 }
 
 // Gemini native call (BYOK)
-async function createGeminiChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
+async function createGeminiChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string, stream = false) {
   const modelName = modelId.replace(/^google\//, '').replace(/:byok$/, '')
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`
+  const endpoint = stream ? 'streamGenerateContent' : 'generateContent'
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:${endpoint}?key=${apiKey}`
 
   // Note: Gemini has strict rules about roles. A system prompt is best handled by
   // prepending its content to the first user message for robust conversation flow.
@@ -111,13 +102,16 @@ async function createGeminiChatCompletion(messages: ChatMessage[], modelId: Mode
   })
 
   if (!res.ok) throw new Error(`❌ Gemini API error: ${await res.text()}`)
+  if (stream) {
+    return { success: true, stream: res.body }
+  }
   const data = await res.json()
   // The response structure can have safety blocks, so check for candidates first.
   return { success: true, message: data.candidates?.[0]?.content?.parts?.[0]?.text || '' }
 }
 
 // Grok native call (BYOK)
-async function createGrokChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
+async function createGrokChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string, stream = false) {
   const url = 'https://api.x.ai/v1/chat/completions'
   const modelName = modelId.replace(/^grok\//, '').replace(/:byok$/, '')
 
@@ -126,6 +120,7 @@ async function createGrokChatCompletion(messages: ChatMessage[], modelId: Models
     messages,
     temperature: 0.7,
     max_tokens: 1000,
+    stream,
   }
 
   const res = await fetch(url, {
@@ -138,6 +133,9 @@ async function createGrokChatCompletion(messages: ChatMessage[], modelId: Models
   })
 
   if (!res.ok) throw new Error(`❌ Grok API error: ${await res.text()}`)
+  if (stream) {
+    return { success: true, stream: res.body }
+  }
   const data = await res.json()
   return { success: true, message: data.choices?.[0]?.message?.content || '' }
 }
@@ -208,7 +206,7 @@ const makeApiCallWithFallback = async <T>(
   }
 }
 
-export const createChatCompletion = async (messages: ChatMessage[], modelId: ModelsIds) => {
+export const createChatCompletion = async (messages: ChatMessage[], modelId: ModelsIds, apiKey?: string) => {
   // Route based on model
   if (modelId.endsWith(':free')) {
     // OpenRouter (free)
@@ -221,10 +219,7 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
       })
     )
     if (!result.success) {
-      return {
-        success: false,
-        error: result.error,
-      }
+      return { success: false, error: result.error }
     }
     return {
       success: true,
@@ -235,7 +230,6 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
 
   if (modelId.startsWith('openai/')) {
     // BYOK OpenAI
-    const apiKey = getApiKeyForModel(modelId)
     if (!apiKey) return { success: false, error: '❌ No OpenAI API key set.' }
     const client = createNativeOpenAIClient(apiKey)
     try {
@@ -257,10 +251,9 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
 
   if (modelId.startsWith('anthropic/')) {
     // BYOK Anthropic
-    const apiKey = getApiKeyForModel(modelId)
     if (!apiKey) return { success: false, error: '❌ No Anthropic API key set.' }
     try {
-      return await createAnthropicChatCompletion(messages, modelId, apiKey)
+      return await createAnthropicChatCompletion(messages, modelId, apiKey, false)
     } catch (error: any) {
       return { success: false, error: error.message }
     }
@@ -268,24 +261,18 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
 
   if (modelId.startsWith('google/')) {
     // BYOK Gemini
-    const apiKey = getApiKeyForModel(modelId)
     if (!apiKey) return { success: false, error: '❌ No Gemini API key set.' }
     try {
-      return await createGeminiChatCompletion(messages, modelId, apiKey)
+      return await createGeminiChatCompletion(messages, modelId, apiKey, false)
     } catch (error: any) {
       return { success: false, error: error.message }
     }
   }
 
   if (modelId.startsWith('grok/')) {
-    const apiKey = getApiKeyForModel(modelId)
     if (!apiKey) return { success: false, error: '❌ No Grok API key set.' }
     try {
-      const result = await createGrokChatCompletion(messages, modelId, apiKey)
-      return {
-        success: true,
-        message: result.message,
-      }
+      return await createGrokChatCompletion(messages, modelId, apiKey, false)
     } catch (error: any) {
       return { success: false, error: error.message }
     }
@@ -294,33 +281,69 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
   return { success: false, error: 'Unknown model provider.' }
 }
 
-export const createChatCompletionStream = async (messages: ChatMessage[], modelId: ModelsIds) => {
-  // Only support streaming for OpenRouter/free models for now
-  if (!modelId.endsWith(':free')) {
-    return {
-      success: false,
-      error: 'Streaming is only supported for free models (OpenRouter) in this version.',
-      stream: null,
+export const createChatCompletionStream = async (messages: ChatMessage[], modelId: ModelsIds, apiKey?: string) => {
+  if (modelId.endsWith(':free')) {
+    const result = await makeApiCallWithFallback((client) =>
+      client.chat.completions.create({
+        model: modelId ?? (env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
+        messages,
+        temperature: 0.7,
+        max_completion_tokens: 1000,
+        stream: true,
+      })
+    )
+    if (!result.success) {
+      return { success: false, error: result.error, stream: null }
+    }
+    return { success: true, stream: result.data }
+  }
+
+  if (modelId.startsWith('openai/')) {
+    if (!apiKey) return { success: false, error: '❌ No OpenAI API key set.', stream: null }
+    const client = createNativeOpenAIClient(apiKey)
+    try {
+      const stream = await client.chat.completions.create({
+        model: modelId.replace(/^openai\//, '').replace(/:byok$/, ''),
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+        stream: true,
+      })
+      return { success: true, stream }
+    } catch (error: any) {
+      return { success: false, error: error.message, stream: null }
     }
   }
-  const result = await makeApiCallWithFallback((client) =>
-    client.chat.completions.create({
-      model: modelId ?? (env.NEXT_PUBLIC_OPENROUTER_DEFAULT_MODEL as ModelsIds),
-      messages,
-      temperature: 0.7,
-      max_completion_tokens: 1000,
-      stream: true,
-    })
-  )
-  if (!result.success) {
-    return {
-      success: false,
-      error: result.error,
-      stream: null,
+
+  if (modelId.startsWith('anthropic/')) {
+    if (!apiKey) return { success: false, error: '❌ No Anthropic API key set.', stream: null }
+    try {
+      const result = await createAnthropicChatCompletion(messages, modelId, apiKey, true)
+      return { success: true, stream: result.stream }
+    } catch (error: any) {
+      return { success: false, error: error.message, stream: null }
     }
   }
-  return {
-    success: true,
-    stream: result.data,
+
+  if (modelId.startsWith('google/')) {
+    if (!apiKey) return { success: false, error: '❌ No Gemini API key set.', stream: true }
+    try {
+      const result = await createGeminiChatCompletion(messages, modelId, apiKey, true)
+      return { success: true, stream: result.stream }
+    } catch (error: any) {
+      return { success: false, error: error.message, stream: null }
+    }
   }
+
+  if (modelId.startsWith('grok/')) {
+    if (!apiKey) return { success: false, error: '❌ No Grok API key set.', stream: null }
+    try {
+      const result = await createGrokChatCompletion(messages, modelId, apiKey, true)
+      return { success: true, stream: result.stream }
+    } catch (error: any) {
+      return { success: false, error: error.message, stream: null }
+    }
+  }
+
+  return { success: false, error: 'Unknown model provider.', stream: null }
 }
