@@ -83,7 +83,7 @@ export const ModelSelector = () => {
         onOpenAutoFocus={(e) => e.preventDefault()}
         className='min-w-[375px] overflow-hidden rounded-2xl border-none p-0 shadow-2xl sm:min-w-[480px]'
       >
-        <div className='flex h-[375px] w-full'>
+        <div className='flex h-[435px] w-full'>
           {/* Developers list */}
           <div className='flex w-40 shrink-0 flex-col border-muted/30 border-r bg-gradient-to-b from-muted/5 to-muted/20 py-3'>
             <div className='px-4 pb-3'>

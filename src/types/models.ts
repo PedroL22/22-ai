@@ -30,6 +30,8 @@ export type ModelsIds =
   | 'anthropic/claude-3.5-sonnet:byok'
   | 'anthropic/claude-3.7-sonnet:byok'
   | 'anthropic/claude-4-opus:byok'
+  | 'grok/grok-3:byok'
+  | 'grok/grok-3-mini:byok'
 
 export type ModelsNames =
   // Free models
@@ -66,7 +68,7 @@ export type ModelsNames =
   | 'Grok 3'
   | 'Grok 3 Mini'
 
-export type ModelsDevelopers = 'Google' | 'DeepSeek' | 'Meta' | 'Qwen' | 'OpenAI' | 'Anthropic'
+export type ModelsDevelopers = 'Google' | 'OpenAI' | 'Anthropic' | 'Meta' | 'Grok' | 'DeepSeek' | 'Qwen'
 
 export type Model = {
   id: ModelsIds
@@ -288,6 +290,20 @@ export const MODELS: Model[] = [
     id: 'anthropic/claude-4-opus:byok',
     name: 'Claude 4 Opus',
     developer: 'Anthropic',
+    description: 'TODO: add description',
+    isFree: false,
+  },
+  {
+    id: 'grok/grok-3:byok',
+    name: 'Grok 3',
+    developer: 'Grok',
+    description: 'TODO: add description',
+    isFree: false,
+  },
+  {
+    id: 'grok/grok-3-mini:byok',
+    name: 'Grok 3 Mini',
+    developer: 'Grok',
     description: 'TODO: add description',
     isFree: false,
   },
