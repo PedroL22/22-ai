@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 
 import { Check, ChevronsUpDown, Info, Sparkles } from 'lucide-react'
 import { Button } from '~/components/ui/button'
@@ -15,7 +15,12 @@ import { getModelName } from '~/utils/get-model-name'
 
 import { MODELS, type ModelsDevelopers, type ModelsIds } from '~/types/models'
 
-export const ModelSelector = () => {
+type ModelSelectorProps = {
+  trigger?: ReactNode
+  onModelSelect?: (modelId: ModelsIds) => void
+}
+
+export const ModelSelector = ({ trigger, onModelSelect }: ModelSelectorProps) => {
   const [activeDeveloper, setActiveDeveloper] = useState<ModelsDevelopers | null>(null)
   const openaiApiKey = useApiKeyStore((s) => s.openaiApiKey)
   const geminiApiKey = useApiKeyStore((s) => s.geminiApiKey)
@@ -59,23 +64,36 @@ export const ModelSelector = () => {
     if (open && selectedModel) setActiveDeveloper(selectedModel.developer)
   }, [open, selectedModel])
 
+  const handleSelect = (model: (typeof MODELS)[number]) => {
+    if (isModelBlocked(model)) return
+    if (onModelSelect) {
+      onModelSelect(model.id as ModelsIds)
+    } else {
+      setSelectedModelId(model.id as ModelsIds)
+    }
+    setOpen(false)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant='outline'
-          aria-expanded={open}
-          className='mx-1 justify-between self-start rounded-sm border-0 bg-transparent px-2 py-1 text-muted-foreground text-sm shadow-none transition-all ease-in hover:bg-muted/50 hover:text-muted-foreground'
-        >
-          <div className='flex items-center gap-2'>
-            {selectedModel ? getDeveloperIcon(selectedModel.developer) : <Sparkles className='size-3' />}
-            <span className='truncate'>
-              {selectedModel ? <>{selectedModel.name}</> : <>{getModelName(selectedModelId)}</>}
-            </span>
-
-            <ChevronsUpDown className='ml-2 size-4 shrink-0 opacity-50' />
-          </div>
-        </Button>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button
+            variant='outline'
+            aria-expanded={open}
+            className='mx-1 justify-between self-start rounded-sm border-0 bg-transparent px-2 py-1 text-muted-foreground text-sm shadow-none transition-all ease-in hover:bg-muted/50 hover:text-muted-foreground'
+          >
+            <div className='flex items-center gap-2'>
+              {selectedModel ? getDeveloperIcon(selectedModel.developer) : <Sparkles className='size-3' />}
+              <span className='truncate'>
+                {selectedModel ? <>{selectedModel.name}</> : <>{getModelName(selectedModelId)}</>}
+              </span>
+              <ChevronsUpDown className='ml-2 size-4 shrink-0 opacity-50' />
+            </div>
+          </Button>
+        )}
       </PopoverTrigger>
 
       <PopoverContent
@@ -170,12 +188,7 @@ export const ModelSelector = () => {
                               <div>
                                 <CommandItem
                                   value={model.id}
-                                  onSelect={() => {
-                                    if (!blocked) {
-                                      setSelectedModelId(model.id as ModelsIds)
-                                      setOpen(false)
-                                    }
-                                  }}
+                                  onSelect={() => handleSelect(model)}
                                   className={cn(
                                     'flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition-all ease-in',
                                     blocked

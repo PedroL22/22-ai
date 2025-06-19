@@ -14,29 +14,21 @@ import remarkMath from 'remark-math'
 
 import './index.css'
 
-import { Check, Copy, Edit, GitBranch, Info, RefreshCcw } from 'lucide-react'
+import { Check, Copy, Edit, GitBranch, RefreshCcw } from 'lucide-react'
 import { toast } from 'sonner'
+import { ModelSelector } from '~/components/ChatArea/components/ModelSelector'
 import { Button } from '~/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu'
 import { Textarea } from '~/components/ui/textarea'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { CodeBlock } from './components/CodeBlock'
 import { MarkdownLink } from './components/MarkdownLink'
 import { MarkdownTable } from './components/MarkdownTable'
 
 import { cn } from '~/lib/utils'
 import { formatMessageDateForChatHistory } from '~/utils/format-date-for-chat-history'
-import { getDeveloperIcon } from '~/utils/get-developer-icon'
 import { getModelName } from '~/utils/get-model-name'
 
 import type { Message as MessageType } from '@prisma/client'
-import { MODELS, type ModelsIds } from '~/types/models'
+import type { ModelsIds } from '~/types/models'
 
 const messageVariants = cva('group relative flex flex-col gap-0.5 rounded-2xl text-sm', {
   variants: {
@@ -252,58 +244,19 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
           >
             <p className='shrink-0 whitespace-nowrap px-1 text-xs sm:px-3'>{`${message.modelId ? `${getModelName(message.modelId as ModelsIds)} ` : ''}${formatMessageDateForChatHistory(message.createdAt.toISOString())}`}</p>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <ModelSelector
+              trigger={
                 <Button
                   variant='ghost'
                   title='Retry message'
                   data-role={message.role}
-                  className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover</DropdownMenuContent>:bg-accent-foreground/5'
-                  onClick={() => onRetry?.(messageIndex, message.modelId as ModelsIds)}
+                  className='aspect-square size-8 shrink-0 rounded-sm hover:bg-accent-foreground/5 dark:hover:bg-accent-foreground/5'
                 >
                   <RefreshCcw className='size-4' />
                 </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent side='top'>
-                <DropdownMenuItem
-                  className='flex cursor-pointer items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'
-                  onClick={() => handleRetry()}
-                >
-                  <RefreshCcw className='size-3' /> <span className='font-medium'>Retry same</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {MODELS.map((model) => (
-                  <DropdownMenuItem
-                    key={model.id}
-                    className='flex cursor-pointer items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
-                    onClick={() => handleRetry(model.id)}
-                  >
-                    <div className='flex items-center space-x-2'>
-                      {getDeveloperIcon(model.developer)}
-
-                      <div className='flex w-full items-center justify-between space-x-4'>
-                        <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>
-                          {model.name}
-                        </span>
-
-                        <Tooltip>
-                          <TooltipTrigger className='shrink-0 cursor-pointer'>
-                            <Info className='size-3' />
-                          </TooltipTrigger>
-
-                          <TooltipContent>
-                            <p className='max-w-[300px]'>{model.description}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+              onModelSelect={(modelId) => handleRetry(modelId)}
+            />
 
             {message.role === 'user' && (
               <Button
@@ -318,8 +271,8 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
             )}
 
             {!message.isError && message.role === 'assistant' && onBranch && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <ModelSelector
+                trigger={
                   <Button
                     variant='ghost'
                     title='Branch from here'
@@ -328,47 +281,9 @@ export const Message = ({ message, messageIndex, isStreaming, onRetry, onEdit, o
                   >
                     <GitBranch className='size-4' />
                   </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent side='top'>
-                  <DropdownMenuItem
-                    className='flex cursor-pointer items-center space-x-0.5 px-3 py-2 text-muted-foreground text-xs transition-all ease-in'
-                    onClick={() => handleBranch()}
-                  >
-                    <GitBranch className='size-3' /> <span className='font-medium'>Branch same model</span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  {MODELS.map((model) => (
-                    <DropdownMenuItem
-                      key={model.id}
-                      className='flex items-center justify-between space-y-1 py-0 transition-all ease-in sm:px-3 sm:py-2'
-                      onClick={() => handleBranch(model.id)}
-                    >
-                      <div className='flex items-center space-x-2'>
-                        {getDeveloperIcon(model.developer)}
-
-                        <div className='flex w-full items-center justify-between space-x-4'>
-                          <span className='whitespace-nowrap font-medium text-muted-foreground text-xs'>
-                            {model.name}
-                          </span>
-
-                          <Tooltip>
-                            <TooltipTrigger className='shrink-0 cursor-pointer'>
-                              <Info className='size-3' />
-                            </TooltipTrigger>
-
-                            <TooltipContent>
-                              <p className='max-w-[300px]'>{model.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                }
+                onModelSelect={(modelId) => handleBranch(modelId)}
+              />
             )}
 
             <Button
