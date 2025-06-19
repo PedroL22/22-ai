@@ -4,7 +4,6 @@ export const getModelName = (modelId: ModelsIds): ModelsNames => {
   const modelNames: Record<ModelsIds, ModelsNames> = {
     // Free models
     'google/gemini-2.0-flash-exp:free': 'Gemini 2.0 Flash Experimental',
-    'google/gemma-3-27b-it:free': 'Gemma 3 27B',
     'deepseek/deepseek-chat-v3-0324:free': 'DeepSeek V3 0324',
     'deepseek/deepseek-r1-0528:free': 'DeepSeek R1 0528',
     'meta-llama/llama-4-maverick:free': 'Llama 4 Maverick',

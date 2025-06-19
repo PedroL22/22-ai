@@ -1,7 +1,6 @@
 export type ModelsIds =
   // Free models
   | 'google/gemini-2.0-flash-exp:free'
-  | 'google/gemma-3-27b-it:free'
   | 'deepseek/deepseek-chat-v3-0324:free'
   | 'deepseek/deepseek-r1-0528:free'
   | 'meta-llama/llama-4-maverick:free'
@@ -36,7 +35,6 @@ export type ModelsIds =
 export type ModelsNames =
   // Free models
   | 'Gemini 2.0 Flash Experimental'
-  | 'Gemma 3 27B'
   | 'DeepSeek V3 0324'
   | 'DeepSeek R1 0528'
   | 'Llama 4 Maverick'
@@ -85,14 +83,6 @@ export const MODELS: Model[] = [
     developer: 'Google',
     description:
       "An experimental version of Google's speed- and efficiency-optimized model. It offers rapid response times for high-frequency tasks like chat and summarization, featuring a 1 million token context window and advanced function calling.",
-    isFree: true,
-  },
-  {
-    id: 'google/gemma-3-27b-it:free',
-    name: 'Gemma 3 27B',
-    developer: 'Google',
-    description:
-      'A speculative next-generation open model from Google. Expected to feature a new architecture, enhanced reasoning, and world-class performance for its size, building upon the foundations of the Gemma and Gemini families.',
     isFree: true,
   },
   {
