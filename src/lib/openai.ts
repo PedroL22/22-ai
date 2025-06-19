@@ -43,7 +43,7 @@ const createNativeOpenAIClient = (apiKey: string): OpenAI => {
   })
 }
 
-// Anthropic native call (BYOK) - CORRECTED
+// Anthropic native call (BYOK)
 async function createAnthropicChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
   const url = 'https://api.anthropic.com/v1/messages'
   const modelName = modelId.replace(/^anthropic\//, '').replace(/:byok$/, '')
@@ -75,9 +75,11 @@ async function createAnthropicChatCompletion(messages: ChatMessage[], modelId: M
   return { success: true, message: data.content?.[0]?.text || '' }
 }
 
-// Gemini native call (BYOK) - CORRECTED
-async function createGeminiChatCompletion(messages: ChatMessage[], apiKey: string) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
+// Gemini native call (BYOK)
+async function createGeminiChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
+  const modelName = modelId.replace(/^google\//, '').replace(/:byok$/, '')
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`
 
   // Note: Gemini has strict rules about roles. A system prompt is best handled by
   // prepending its content to the first user message for robust conversation flow.
@@ -91,7 +93,7 @@ async function createGeminiChatCompletion(messages: ChatMessage[], apiKey: strin
     typeof conversationMessages[0]?.content === 'string'
   ) {
     conversationMessages[0].content = `${systemPrompt}\n\n${conversationMessages[0].content}`
-    systemPrompt = undefined // Mark as handled
+    systemPrompt = undefined
   }
 
   // Transform roles for Gemini API: 'assistant' must become 'model'
@@ -100,9 +102,7 @@ async function createGeminiChatCompletion(messages: ChatMessage[], apiKey: strin
     parts: [{ text: m.content }],
   }))
 
-  const body = {
-    contents: contents,
-  }
+  const body = { contents: contents }
 
   const res = await fetch(url, {
     method: 'POST',
@@ -271,7 +271,7 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
     const apiKey = getApiKeyForModel(modelId)
     if (!apiKey) return { success: false, error: '❌ No Gemini API key set.' }
     try {
-      return await createGeminiChatCompletion(messages, apiKey)
+      return await createGeminiChatCompletion(messages, modelId, apiKey)
     } catch (error: any) {
       return { success: false, error: error.message }
     }
