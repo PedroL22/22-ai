@@ -315,7 +315,7 @@ export const MODELS: Model[] = [
   {
     id: 'grok/grok-3:byok',
     name: 'Grok 3',
-    developer: 'xAI',
+    developer: 'Grok',
     description:
       'The flagship model from xAI, blending advanced reasoning with a vast knowledge base. It excels at complex problem-solving, coding, and instruction-following, with deep domain expertise in science and finance.',
     isFree: false,
@@ -323,7 +323,7 @@ export const MODELS: Model[] = [
   {
     id: 'grok/grok-3-mini:byok',
     name: 'Grok 3 Mini',
-    developer: 'xAI',
+    developer: 'Grok',
     description:
       'A lightweight and powerful model from xAI, optimized for logic-based tasks and efficiency. It delivers strong reasoning capabilities, powered by large-scale reinforcement learning, in a more compact package.',
     isFree: false,
