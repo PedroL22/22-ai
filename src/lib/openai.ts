@@ -43,19 +43,22 @@ const createNativeOpenAIClient = (apiKey: string): OpenAI => {
   })
 }
 
-// Anthropic native call (BYOK)
-async function createAnthropicChatCompletion(messages: any[], apiKey: string, modelId: ModelsIds) {
+// Anthropic native call (BYOK) - CORRECTED
+async function createAnthropicChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
   const url = 'https://api.anthropic.com/v1/messages'
+  const modelName = modelId.replace(/^anthropic\//, '').replace(/:byok$/, '')
+
+  // Correctly separate the system prompt from the conversational history
   const systemPrompt = messages.find((m) => m.role === 'system')?.content
-  const userMessages = messages.filter((m) => m.role === 'user').map((m) => m.content)
+  const conversationMessages = messages.filter((m) => m.role !== 'system')
+
   const body = {
-    model: modelId.replace(/^anthropic\//, '').replace(/:byok$/, ''),
-    max_tokens: 1000,
-    messages: [
-      ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-      ...userMessages.map((content) => ({ role: 'user', content })),
-    ],
+    model: modelName,
+    max_tokens: 1024,
+    system: systemPrompt, // Use the dedicated 'system' parameter
+    messages: conversationMessages, // Pass the full alternating user/assistant history
   }
+
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -65,25 +68,51 @@ async function createAnthropicChatCompletion(messages: any[], apiKey: string, mo
     },
     body: JSON.stringify(body),
   })
+
   if (!res.ok) throw new Error(`❌ Anthropic API error: ${await res.text()}`)
   const data = await res.json()
+  // The response structure for Claude is {..., "content": [{"type": "text", "text": "..."}]}
   return { success: true, message: data.content?.[0]?.text || '' }
 }
 
-// Gemini native call (BYOK)
-async function createGeminiChatCompletion(messages: any[], apiKey: string) {
-  // Gemini API expects a different format
+// Gemini native call (BYOK) - CORRECTED
+async function createGeminiChatCompletion(messages: ChatMessage[], apiKey: string) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
-  const body = {
-    contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.content }] })),
+
+  // Note: Gemini has strict rules about roles. A system prompt is best handled by
+  // prepending its content to the first user message for robust conversation flow.
+  let systemPrompt = messages.find((m) => m.role === 'system')?.content
+  const conversationMessages = messages.filter((m) => m.role !== 'system')
+
+  if (
+    systemPrompt &&
+    conversationMessages.length > 0 &&
+    conversationMessages[0]?.role === 'user' &&
+    typeof conversationMessages[0]?.content === 'string'
+  ) {
+    conversationMessages[0].content = `${systemPrompt}\n\n${conversationMessages[0].content}`
+    systemPrompt = undefined // Mark as handled
   }
+
+  // Transform roles for Gemini API: 'assistant' must become 'model'
+  const contents = conversationMessages.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }))
+
+  const body = {
+    contents: contents,
+  }
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+
   if (!res.ok) throw new Error(`❌ Gemini API error: ${await res.text()}`)
   const data = await res.json()
+  // The response structure can have safety blocks, so check for candidates first.
   return { success: true, message: data.candidates?.[0]?.content?.parts?.[0]?.text || '' }
 }
 
@@ -91,12 +120,14 @@ async function createGeminiChatCompletion(messages: any[], apiKey: string) {
 async function createGrokChatCompletion(messages: ChatMessage[], modelId: ModelsIds, apiKey: string) {
   const url = 'https://api.x.ai/v1/chat/completions'
   const modelName = modelId.replace(/^grok\//, '').replace(/:byok$/, '')
+
   const body = {
     model: modelName,
     messages,
     temperature: 0.7,
     max_tokens: 1000,
   }
+
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -105,6 +136,7 @@ async function createGrokChatCompletion(messages: ChatMessage[], modelId: Models
     },
     body: JSON.stringify(body),
   })
+
   if (!res.ok) throw new Error(`❌ Grok API error: ${await res.text()}`)
   const data = await res.json()
   return { success: true, message: data.choices?.[0]?.message?.content || '' }
@@ -200,6 +232,7 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
       usage: result.data.usage,
     }
   }
+
   if (modelId.startsWith('openai/')) {
     // BYOK OpenAI
     const apiKey = getApiKeyForModel(modelId)
@@ -221,16 +254,18 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
       return { success: false, error: error.message }
     }
   }
+
   if (modelId.startsWith('anthropic/')) {
     // BYOK Anthropic
     const apiKey = getApiKeyForModel(modelId)
     if (!apiKey) return { success: false, error: '❌ No Anthropic API key set.' }
     try {
-      return await createAnthropicChatCompletion(messages, apiKey, modelId)
+      return await createAnthropicChatCompletion(messages, modelId, apiKey)
     } catch (error: any) {
       return { success: false, error: error.message }
     }
   }
+
   if (modelId.startsWith('google/')) {
     // BYOK Gemini
     const apiKey = getApiKeyForModel(modelId)
@@ -241,6 +276,7 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
       return { success: false, error: error.message }
     }
   }
+
   if (modelId.startsWith('grok/')) {
     const apiKey = getApiKeyForModel(modelId)
     if (!apiKey) return { success: false, error: '❌ No Grok API key set.' }
@@ -254,6 +290,7 @@ export const createChatCompletion = async (messages: ChatMessage[], modelId: Mod
       return { success: false, error: error.message }
     }
   }
+
   return { success: false, error: 'Unknown model provider.' }
 }
 
