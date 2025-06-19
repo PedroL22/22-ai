@@ -22,15 +22,17 @@ type ModelSelectorProps = {
 
 export const ModelSelector = ({ trigger, onModelSelect }: ModelSelectorProps) => {
   const [activeDeveloper, setActiveDeveloper] = useState<ModelsDevelopers | null>(null)
-  const openaiApiKey = useApiKeyStore((s) => s.openaiApiKey)
   const geminiApiKey = useApiKeyStore((s) => s.geminiApiKey)
+  const openaiApiKey = useApiKeyStore((s) => s.openaiApiKey)
   const anthropicApiKey = useApiKeyStore((s) => s.anthropicApiKey)
+  const grokApiKey = useApiKeyStore((s) => s.grokApiKey)
 
   const isModelBlocked = (model: (typeof MODELS)[number]): boolean => {
     if (model.isFree) return false
     if (model.developer === 'OpenAI') return !openaiApiKey
-    if (model.developer === 'Google') return !geminiApiKey
     if (model.developer === 'Anthropic') return !anthropicApiKey
+    if (model.developer === 'Google') return !geminiApiKey
+    if (model.developer === 'Grok') return !grokApiKey
     return false
   }
 
@@ -50,12 +52,13 @@ export const ModelSelector = ({ trigger, onModelSelect }: ModelSelectorProps) =>
   }, {})
 
   // List of developers in desired order (always visible)
-  const developerOrder: ModelsDevelopers[] = ['Google', 'OpenAI', 'Anthropic', 'Meta', 'DeepSeek', 'Qwen']
+  const developerOrder: ModelsDevelopers[] = ['OpenAI', 'Anthropic', 'Google', 'Meta', 'Grok', 'DeepSeek', 'Qwen']
 
   const getBlockReason = (model: (typeof MODELS)[number]) => {
     if (model.developer === 'OpenAI') return 'Add your OpenAI API key in Settings to use this model.'
-    if (model.developer === 'Google') return 'Add your Gemini API key in Settings to use this model.'
     if (model.developer === 'Anthropic') return 'Add your Anthropic API key in Settings to use this model.'
+    if (model.developer === 'Google') return 'Add your Gemini API key in Settings to use this model.'
+    if (model.developer === 'Grok') return 'Add your Grok API key in Settings to use this model.'
     return 'API key required.'
   }
 
@@ -101,7 +104,7 @@ export const ModelSelector = ({ trigger, onModelSelect }: ModelSelectorProps) =>
         onOpenAutoFocus={(e) => e.preventDefault()}
         className='min-w-[375px] overflow-hidden rounded-2xl border-none p-0 shadow-2xl sm:min-w-[480px]'
       >
-        <div className='flex h-[435px] w-full'>
+        <div className='flex h-[495px] w-full'>
           {/* Developers list */}
           <div className='flex w-40 shrink-0 flex-col border-muted/30 border-r bg-gradient-to-b from-muted/5 to-muted/20 py-3'>
             <div className='px-4 pb-3'>

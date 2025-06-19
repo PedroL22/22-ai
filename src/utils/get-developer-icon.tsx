@@ -14,6 +14,8 @@ export const getDeveloperIcon = (developer: ModelsDevelopers) => {
       return <Image src='/images/icons/anthropic.svg' alt='Anthropic Logo' width={16} height={16} className='size-4' />
     case 'Meta':
       return <Image src='/images/icons/meta.svg' alt='Meta Logo' width={16} height={16} className='size-4' />
+    case 'Grok':
+      return <Image src='/images/icons/grok.svg' alt='Grok Logo' width={16} height={16} className='size-4' />
     case 'DeepSeek':
       return <Image src='/images/icons/deepseek.svg' alt='DeepSeek Logo' width={16} height={16} className='size-4' />
     case 'Qwen':

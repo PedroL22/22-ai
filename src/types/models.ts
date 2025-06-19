@@ -11,11 +11,6 @@ export type ModelsIds =
   | 'qwen/qwen2.5-vl-72b-instruct:free'
   | 'qwen/qwen-2.5-coder-32b-instruct:free'
   // BYOK models
-  | 'google/gemini-2.5-pro:byok'
-  | 'google/gemini-2.5-flash:byok'
-  | 'google/gemini-2.5-flash-lite:byok'
-  | 'google/gemini-2.0-flash:byok'
-  | 'google/gemini-2.0-flash-lite:byok'
   | 'openai/gpt-4o:byok'
   | 'openai/gpt-4o-mini:byok'
   | 'openai/gpt-4.1:byok'
@@ -30,6 +25,11 @@ export type ModelsIds =
   | 'anthropic/claude-3.5-sonnet:byok'
   | 'anthropic/claude-3.7-sonnet:byok'
   | 'anthropic/claude-4-opus:byok'
+  | 'google/gemini-2.5-pro:byok'
+  | 'google/gemini-2.5-flash:byok'
+  | 'google/gemini-2.5-flash-lite:byok'
+  | 'google/gemini-2.0-flash:byok'
+  | 'google/gemini-2.0-flash-lite:byok'
   | 'grok/grok-3:byok'
   | 'grok/grok-3-mini:byok'
 
@@ -46,11 +46,6 @@ export type ModelsNames =
   | 'Qwen2.5 VL 72B Instruct'
   | 'Qwen2.5 Coder 32B Instruct'
   // BYOK models
-  | 'Gemini 2.5 Pro'
-  | 'Gemini 2.5 Flash'
-  | 'Gemini 2.5 Flash Lite'
-  | 'Gemini 2.0 Flash'
-  | 'Gemini 2.0 Flash Lite'
   | 'GPT 4o'
   | 'GPT 4o-mini'
   | 'GPT 4.1'
@@ -65,10 +60,15 @@ export type ModelsNames =
   | 'Claude 3.5 Sonnet'
   | 'Claude 3.7 Sonnet'
   | 'Claude 4 Opus'
+  | 'Gemini 2.5 Pro'
+  | 'Gemini 2.5 Flash'
+  | 'Gemini 2.5 Flash Lite'
+  | 'Gemini 2.0 Flash'
+  | 'Gemini 2.0 Flash Lite'
   | 'Grok 3'
   | 'Grok 3 Mini'
 
-export type ModelsDevelopers = 'Google' | 'OpenAI' | 'Anthropic' | 'Meta' | 'Grok' | 'DeepSeek' | 'Qwen'
+export type ModelsDevelopers = 'OpenAI' | 'Anthropic' | 'Google' | 'Meta' | 'Grok' | 'DeepSeek' | 'Qwen'
 
 export type Model = {
   id: ModelsIds
@@ -160,41 +160,6 @@ export const MODELS: Model[] = [
     isFree: true,
   },
   // BYOK models
-  {
-    id: 'google/gemini-2.5-pro:byok',
-    name: 'Gemini 2.5 Pro',
-    developer: 'Google',
-    description: 'TODO: add description',
-    isFree: false,
-  },
-  {
-    id: 'google/gemini-2.5-flash:byok',
-    name: 'Gemini 2.5 Flash',
-    developer: 'Google',
-    description: 'TODO: add description',
-    isFree: false,
-  },
-  {
-    id: 'google/gemini-2.5-flash-lite:byok',
-    name: 'Gemini 2.5 Flash Lite',
-    developer: 'Google',
-    description: 'TODO: add description',
-    isFree: false,
-  },
-  {
-    id: 'google/gemini-2.0-flash:byok',
-    name: 'Gemini 2.0 Flash',
-    developer: 'Google',
-    description: 'TODO: add description',
-    isFree: false,
-  },
-  {
-    id: 'google/gemini-2.0-flash-lite:byok',
-    name: 'Gemini 2.0 Flash Lite',
-    developer: 'Google',
-    description: 'TODO: add description',
-    isFree: false,
-  },
   {
     id: 'openai/gpt-4o:byok',
     name: 'GPT 4o',
@@ -290,6 +255,41 @@ export const MODELS: Model[] = [
     id: 'anthropic/claude-4-opus:byok',
     name: 'Claude 4 Opus',
     developer: 'Anthropic',
+    description: 'TODO: add description',
+    isFree: false,
+  },
+  {
+    id: 'google/gemini-2.5-pro:byok',
+    name: 'Gemini 2.5 Pro',
+    developer: 'Google',
+    description: 'TODO: add description',
+    isFree: false,
+  },
+  {
+    id: 'google/gemini-2.5-flash:byok',
+    name: 'Gemini 2.5 Flash',
+    developer: 'Google',
+    description: 'TODO: add description',
+    isFree: false,
+  },
+  {
+    id: 'google/gemini-2.5-flash-lite:byok',
+    name: 'Gemini 2.5 Flash Lite',
+    developer: 'Google',
+    description: 'TODO: add description',
+    isFree: false,
+  },
+  {
+    id: 'google/gemini-2.0-flash:byok',
+    name: 'Gemini 2.0 Flash',
+    developer: 'Google',
+    description: 'TODO: add description',
+    isFree: false,
+  },
+  {
+    id: 'google/gemini-2.0-flash-lite:byok',
+    name: 'Gemini 2.0 Flash Lite',
+    developer: 'Google',
     description: 'TODO: add description',
     isFree: false,
   },
